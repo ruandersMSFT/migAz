@@ -15,15 +15,13 @@ namespace MigAz.Azure.MigrationTarget
 {
     public class NetworkInterfaceIpConfiguration : Core.MigrationTarget, IVirtualNetworkTarget
     {
-        private INetworkInterfaceIpConfiguration _SourceIpConfiguration;
-
         #region Constructors
 
-        private NetworkInterfaceIpConfiguration() : base(String.Empty, String.Empty, null) { }
+        private NetworkInterfaceIpConfiguration() : base(null, String.Empty, String.Empty, null, null) { }
 
-        public NetworkInterfaceIpConfiguration(Azure.Asm.NetworkInterfaceIpConfiguration ipConfiguration, List<VirtualNetwork> virtualNetworks, TargetSettings targetSettings, ILogProvider logProvider) : base(String.Empty, String.Empty, logProvider)
+        public NetworkInterfaceIpConfiguration(AzureSubscription azureSubscription, Azure.Asm.NetworkInterfaceIpConfiguration ipConfiguration, List<VirtualNetwork> virtualNetworks, TargetSettings targetSettings, ILogProvider logProvider) : base(azureSubscription, String.Empty, String.Empty, targetSettings, logProvider)
         {
-            _SourceIpConfiguration = ipConfiguration;
+            this.Source = ipConfiguration;
 
             this.SetTargetName(ipConfiguration.Name, targetSettings);
             if (ipConfiguration.PrivateIpAllocationMethod.Trim().ToLower() == "static")
@@ -53,35 +51,10 @@ namespace MigAz.Azure.MigrationTarget
 
         }
 
-        public NetworkInterfaceIpConfiguration(Azure.Arm.NetworkInterfaceIpConfiguration ipConfiguration, List<VirtualNetwork> virtualNetworks, TargetSettings targetSettings, ILogProvider logProvider) : base(String.Empty, String.Empty, logProvider)
+        public NetworkInterfaceIpConfiguration(AzureSubscription azureSubscription, Azure.Arm.NetworkInterfaceIpConfiguration ipConfiguration, TargetSettings targetSettings, ILogProvider logProvider) : base(azureSubscription, String.Empty, String.Empty, targetSettings, logProvider)
         {
-            _SourceIpConfiguration = ipConfiguration;
-
-            #region Attempt to default Target Virtual Network and Target Subnet objects from source names
-
+            this.Source = ipConfiguration;
             this.SetTargetName(ipConfiguration.Name, targetSettings);
-            if (ipConfiguration.PrivateIpAllocationMethod.Trim().ToLower() == "static")
-                this.TargetPrivateIPAllocationMethod = IPAllocationMethodEnum.Static;
-            else
-                this.TargetPrivateIPAllocationMethod = IPAllocationMethodEnum.Dynamic;
-
-            this.TargetPrivateIpAddress = ipConfiguration.PrivateIpAddress;
-            this.TargetVirtualNetwork = SeekVirtualNetwork(virtualNetworks, ipConfiguration.VirtualNetworkName);
-            if (this.TargetVirtualNetwork != null && this.TargetVirtualNetwork.GetType() == typeof(Azure.MigrationTarget.VirtualNetwork)) // Should only be of this type, as we don't default to another existing ARM VNet (which would be of the base interface type also)
-            {
-                Azure.MigrationTarget.VirtualNetwork targetVirtualNetwork = (Azure.MigrationTarget.VirtualNetwork)this.TargetVirtualNetwork;
-                foreach (Subnet targetSubnet in targetVirtualNetwork.TargetSubnets)
-                {
-                    if (targetSubnet.SourceName == ipConfiguration.SubnetName)
-                    {
-                        this.TargetSubnet = targetSubnet;
-                        break;
-                    }
-                }
-            }
-
-            #endregion
-            
         }
 
         #endregion
@@ -110,23 +83,6 @@ namespace MigAz.Azure.MigrationTarget
 
         #endregion
 
-        public INetworkInterfaceIpConfiguration SourceIpConfiguration
-        {
-            get { return _SourceIpConfiguration; }
-        }
-
-
-        public string SourceName
-        {
-            get
-            {
-                if (this.SourceIpConfiguration == null)
-                    return String.Empty;
-
-                return this.SourceIpConfiguration.Name;
-            }
-        }
-
         public Core.IMigrationPublicIp TargetPublicIp { get; set; }
 
         public NetworkSecurityGroup TargetNetworkSecurityGroup { get; set; }
@@ -137,6 +93,36 @@ namespace MigAz.Azure.MigrationTarget
             this.TargetNameResult = this.TargetName;
         }
 
+        public override async Task RefreshFromSource()
+        {
+            if (this.Source != null)
+            {
+                if (this.Source.GetType() == typeof(Azure.Arm.NetworkInterfaceIpConfiguration))
+                {
+                    Arm.NetworkInterfaceIpConfiguration ipConfiguration = (Arm.NetworkInterfaceIpConfiguration)this.Source;
+
+                    if (ipConfiguration.PrivateIpAllocationMethod.Trim().ToLower() == "static")
+                        this.TargetPrivateIPAllocationMethod = IPAllocationMethodEnum.Static;
+                    else
+                        this.TargetPrivateIPAllocationMethod = IPAllocationMethodEnum.Dynamic;
+
+                    this.TargetPrivateIpAddress = ipConfiguration.PrivateIpAddress;
+                    this.TargetVirtualNetwork = (Arm.VirtualNetwork)await AzureSubscription.SeekResourceById(ipConfiguration.VirtualNetworkId);
+                    if (this.TargetVirtualNetwork != null && this.TargetVirtualNetwork.GetType() == typeof(Azure.Arm.VirtualNetwork))
+                    {
+                        Azure.Arm.VirtualNetwork armVirtualNetwork = (Azure.Arm.VirtualNetwork)this.TargetVirtualNetwork;
+                        foreach (Arm.Subnet armSubnet in armVirtualNetwork.Subnets)
+                        {
+                            if (String.Compare(armSubnet.Id, ipConfiguration.SubnetId, true) == 0)
+                            {
+                                this.TargetSubnet = armSubnet;
+                                break;
+                            }
+                        }
+                    }
+                }
+            }
+        }
     }
 }
 

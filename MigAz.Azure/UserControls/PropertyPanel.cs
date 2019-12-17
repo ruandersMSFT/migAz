@@ -154,6 +154,13 @@ namespace MigAz.Azure.UserControls
                 await properties.Bind((VirtualMachine)migrationTarget, _TargetTreeView);
                 this.PropertyDetailControl = properties;
             }
+            else if (migrationTarget.GetType() == typeof(ApplicationSecurityGroup))
+            {
+                ApplicationSecurityGroupProperties properties = new ApplicationSecurityGroupProperties();
+                properties.PropertyChanged += Properties_PropertyChanged;
+                properties.Bind((ApplicationSecurityGroup)migrationTarget, _TargetTreeView);
+                this.PropertyDetailControl = properties;
+            }
             else if (migrationTarget.GetType() == typeof(NetworkSecurityGroup))
             {
                 NetworkSecurityGroupProperties properties = new NetworkSecurityGroupProperties();

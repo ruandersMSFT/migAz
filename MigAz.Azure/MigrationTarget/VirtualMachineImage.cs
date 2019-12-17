@@ -22,19 +22,6 @@
 //            this.TargetName = virtualMachineImage.Name;
 //        }
 
-//        public IVirtualMachineImage Source { get; set; }
-
-//        public string SourceName
-//        {
-//            get
-//            {
-//                if (this.Source == null)
-//                    return String.Empty;
-//                else
-//                    return this.Source.ToString();
-//            }
-//        }
-
 //        public string TargetName
 //        {
 //            get { return _TargetName; }

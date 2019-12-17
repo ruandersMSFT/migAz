@@ -12,33 +12,32 @@ using System.Threading.Tasks;
 
 namespace MigAz.Azure.MigrationTarget
 {
-    public class AvailabilitySet : Core.MigrationTarget
+    public class AvailabilitySet : Core.MigrationTarget //<IAvailabilitySetSource>
     {
-        private IAvailabilitySetSource _SourceAvailabilitySet;
         private List<VirtualMachine> _TargetVirtualMachines = new List<VirtualMachine>();
         private Int32 _PlatformUpdateDomainCount = 5;
         private Int32 _PlatformFaultDomainCount = 3;
 
         #region Constructors 
 
-        public AvailabilitySet() : base(ArmConst.MicrosoftCompute, ArmConst.AvailabilitySets, null) { }
+        public AvailabilitySet() : base(null, ArmConst.MicrosoftCompute, ArmConst.AvailabilitySets, null, null) { }
 
-        public AvailabilitySet(String targetName, TargetSettings targetSettings, ILogProvider logProvider) : base(ArmConst.MicrosoftCompute, ArmConst.AvailabilitySets, logProvider)
+        public AvailabilitySet(AzureSubscription azureSubscription, String targetName, TargetSettings targetSettings, ILogProvider logProvider) : base(azureSubscription, ArmConst.MicrosoftCompute, ArmConst.AvailabilitySets, targetSettings, logProvider)
         {
             this.SetTargetName(targetName, targetSettings);
         }
 
-        public AvailabilitySet(Asm.CloudService asmCloudService, TargetSettings targetSettings, ILogProvider logProvider) : base(ArmConst.MicrosoftCompute, ArmConst.AvailabilitySets, logProvider)
+        public AvailabilitySet(AzureSubscription azureSubscription, Asm.CloudService asmCloudService, TargetSettings targetSettings, ILogProvider logProvider) : base(azureSubscription, ArmConst.MicrosoftCompute, ArmConst.AvailabilitySets, targetSettings, logProvider)
         {
-            _SourceAvailabilitySet = asmCloudService;
-            this.SetTargetName(_SourceAvailabilitySet.Name, targetSettings);
+            this.Source = asmCloudService;
+            this.SetTargetName(asmCloudService.Name, targetSettings);
         }
 
-        public AvailabilitySet(Arm.AvailabilitySet availabilitySet, TargetSettings targetSettings, ILogProvider logProvider) : base(ArmConst.MicrosoftCompute, ArmConst.AvailabilitySets, logProvider)
+        public AvailabilitySet(AzureSubscription azureSubscription, Arm.AvailabilitySet availabilitySet, TargetSettings targetSettings, ILogProvider logProvider) : base(azureSubscription, ArmConst.MicrosoftCompute, ArmConst.AvailabilitySets, targetSettings, logProvider)
         {
-            _SourceAvailabilitySet = availabilitySet;
+            this.Source = availabilitySet;
 
-            this.SetTargetName(_SourceAvailabilitySet.Name, targetSettings);
+            this.SetTargetName(availabilitySet.Name, targetSettings);
 
             if (availabilitySet.PlatformFaultDomainCount < Constants.AvailabilitySetMinPlatformFaultDomain)
             {
@@ -52,7 +51,8 @@ namespace MigAz.Azure.MigrationTarget
             }
             else
             {
-                this.PlatformFaultDomainCount = availabilitySet.PlatformFaultDomainCount;
+                if (availabilitySet.PlatformFaultDomainCount.HasValue)
+                    this.PlatformFaultDomainCount = availabilitySet.PlatformFaultDomainCount.Value;
             }
 
             if (availabilitySet.PlatformUpdateDomainCount < Constants.AvailabilitySetMinPlatformUpdateDomain)
@@ -62,32 +62,12 @@ namespace MigAz.Azure.MigrationTarget
             }
             else if (availabilitySet.PlatformUpdateDomainCount > Constants.AvailabilitySetMaxPlatformUpdateDomain)
             {
-                // todo future, track object translation alerts
-                this.PlatformUpdateDomainCount = Constants.AvailabilitySetMaxPlatformUpdateDomain;
-            }
-            else
-            {
-                this.PlatformUpdateDomainCount = availabilitySet.PlatformUpdateDomainCount;
+                if (availabilitySet.PlatformUpdateDomainCount.HasValue)
+                    this.PlatformUpdateDomainCount = availabilitySet.PlatformUpdateDomainCount.Value;
             }
         }
 
         #endregion
-
-        public IAvailabilitySetSource SourceAvailabilitySet
-        {
-            get { return _SourceAvailabilitySet; }
-        }
-
-        public String SourceName
-        {
-            get
-            {
-                if (this.SourceAvailabilitySet == null)
-                    return String.Empty;
-                else
-                    return this.SourceAvailabilitySet.ToString();
-            }
-        }
 
         public List<VirtualMachine> TargetVirtualMachines
         {
@@ -157,6 +137,10 @@ namespace MigAz.Azure.MigrationTarget
             this.TargetNameResult = this.TargetName + targetSettings.AvailabilitySetSuffix;
         }
 
+        public override async Task RefreshFromSource()
+        {
+            //throw new NotImplementedException();
+        }
     }
 }
 

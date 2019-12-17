@@ -22,6 +22,10 @@ namespace MigAz.Azure.Arm
             _BlobStorageNamespace = blobStorageNamespace;
         }
 
+        public StorageAccount(AzureSubscription azureSubscription, JToken resourceToken) : base(azureSubscription, resourceToken)
+        {
+        }
+
         public List<StorageAccountKey> Keys
         {
             get { return ResourceTokenKeys; }
@@ -123,11 +127,6 @@ namespace MigAz.Azure.Arm
                 else
                     return StorageAccountType.Standard_LRS;
                 }
-        }
-
-        public override string ToString()
-        {
-            return this.Name;
         }
     }
 }

@@ -26,16 +26,16 @@ namespace MigAz.Azure.UserControls
                 _NetworkSecurityGroup = networkSecurityGroup;
                 _TargetTreeView = targetTreeView;
 
-                if (_NetworkSecurityGroup.SourceNetworkSecurityGroup != null)
+                if (_NetworkSecurityGroup.Source != null)
                 {
-                    if (_NetworkSecurityGroup.SourceNetworkSecurityGroup.GetType() == typeof(Azure.Asm.NetworkSecurityGroup))
+                    if (_NetworkSecurityGroup.Source.GetType() == typeof(Azure.Asm.NetworkSecurityGroup))
                     {
-                        Azure.Asm.NetworkSecurityGroup asmNetworkSecurityGroup = (Azure.Asm.NetworkSecurityGroup)_NetworkSecurityGroup.SourceNetworkSecurityGroup;
+                        Azure.Asm.NetworkSecurityGroup asmNetworkSecurityGroup = (Azure.Asm.NetworkSecurityGroup)_NetworkSecurityGroup.Source;
                         lblSourceName.Text = asmNetworkSecurityGroup.Name;
                     }
-                    else if (_NetworkSecurityGroup.SourceNetworkSecurityGroup.GetType() == typeof(Azure.Arm.NetworkSecurityGroup))
+                    else if (_NetworkSecurityGroup.Source.GetType() == typeof(Azure.Arm.NetworkSecurityGroup))
                     {
-                        Azure.Arm.NetworkSecurityGroup armNetworkSecurityGroup = (Azure.Arm.NetworkSecurityGroup)_NetworkSecurityGroup.SourceNetworkSecurityGroup;
+                        Azure.Arm.NetworkSecurityGroup armNetworkSecurityGroup = (Azure.Arm.NetworkSecurityGroup)_NetworkSecurityGroup.Source;
                         lblSourceName.Text = armNetworkSecurityGroup.Name;
                     }
                 }

@@ -19,10 +19,6 @@ namespace MigAz.Azure.Arm
         {
         }
 
-        public override string ToString()
-        {
-            return this.Name;
-        }
     }
 }
 

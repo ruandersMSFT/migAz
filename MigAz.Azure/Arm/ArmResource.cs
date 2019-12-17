@@ -12,6 +12,9 @@ namespace MigAz.Azure.Arm
 {
     public class ArmResource
     {
+        public delegate Task AfterResourceTokenChangedHandler();
+        public event AfterResourceTokenChangedHandler AfterResourceTokenChanged;
+
         private JToken _ResourceToken;
         private AzureSubscription _AzureSubscription;
         private Location _Location;
@@ -22,20 +25,24 @@ namespace MigAz.Azure.Arm
         {
             _AzureSubscription = azureSubscription;
             _ResourceToken = resourceToken;
-        }
-        internal virtual async Task InitializeChildrenAsync()
-        {
-            this.ResourceGroup = await this.AzureSubscription.GetAzureARMResourceGroup(this.Id);
+
+            this.ResourceGroup = this.AzureSubscription.GetAzureARMResourceGroup(this.Id).Result;
 
             if (this.LocationString != null && this.LocationString.Length > 0)
                 this.Location = this.AzureSubscription.GetAzureARMLocation(this.LocationString);
 
-            return;
+        }
+        internal virtual async Task InitializeChildrenAsync()
+        {
+            return; // Todo russell now what?  get rid of?
         }
 
-        internal void SetResourceToken(JToken resourceToken)
+        internal async Task SetResourceToken(JToken resourceToken)
         {
             _ResourceToken = resourceToken;
+
+            if (AfterResourceTokenChanged != null)
+                await AfterResourceTokenChanged();
         }
 
         public AzureSubscription AzureSubscription
@@ -44,9 +51,10 @@ namespace MigAz.Azure.Arm
         }
 
         public JToken ResourceToken => _ResourceToken;
-        public string Name => (string)_ResourceToken["name"];
-        public string Id => (string)_ResourceToken["id"];
-        private string LocationString => (string)_ResourceToken["location"];
+        public string Id => (string)_ResourceToken.SelectToken("id");
+        public string Name => (string)_ResourceToken.SelectToken("name");
+        public string Type => (string)_ResourceToken.SelectToken("type");
+        private string LocationString => (string)_ResourceToken.SelectToken("location");
 
         public Location Location
         {
@@ -61,6 +69,18 @@ namespace MigAz.Azure.Arm
         }
 
         public ResourceGroup ResourceGroup { get; internal set; }
+
+        public async Task RefreshToken()
+        {
+            JObject resourceToken = await this.AzureSubscription.GetArmResourceJson(this.Id);
+            await SetResourceToken(resourceToken);
+        }
+
+        public override string ToString()
+        {
+            return this.Name;
+        }
+
     }
 }
 

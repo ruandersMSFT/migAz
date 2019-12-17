@@ -15,10 +15,5 @@ namespace MigAz.Azure.Arm
         public LocalNetworkGateway(AzureSubscription azureSubscription, JToken resourceToken) : base(azureSubscription, resourceToken)
         {
         }
-
-        public override string ToString()
-        {
-            return this.Name;
-        }
     }
 }

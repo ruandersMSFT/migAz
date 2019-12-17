@@ -13,24 +13,25 @@ using System.Threading.Tasks;
 
 namespace MigAz.Azure.MigrationTarget
 {
-    public class ResourceGroup : Core.MigrationTarget
+    public class ResourceGroup : Core.MigrationTarget, IResourceGroup
     {
         private Arm.Location _TargetLocation;
+        private List<Core.MigrationTarget> _Resources;
 
         #region Constructors
 
-        public ResourceGroup(TargetSettings targetSettings, ILogProvider logProvider) : base(String.Empty, String.Empty, logProvider)
+        public ResourceGroup(AzureSubscription azureSubscription, TargetSettings targetSettings, ILogProvider logProvider) : base(azureSubscription, String.Empty, String.Empty, targetSettings, logProvider)
         {
             this.SetTargetName("NewResourceGroup", targetSettings);
         }
 
-        #endregion
-
-        public String SourceName
+        public ResourceGroup(AzureSubscription azureSubscription, Arm.ResourceGroup resourceGroup, TargetSettings targetSettings, ILogProvider logProvider) : base(azureSubscription, String.Empty, String.Empty, targetSettings, logProvider)
         {
-            get { return String.Empty; }
+            this.Source = resourceGroup;
+            this.SetTargetName(resourceGroup.Name, targetSettings);
         }
 
+        #endregion
 
         public Arm.Location TargetLocation
         {
@@ -38,10 +39,19 @@ namespace MigAz.Azure.MigrationTarget
             set { _TargetLocation = value; }
         }
 
+        public List<Core.MigrationTarget> Resources
+        {
+            get { return _Resources; }
+        }
+
         public override string ImageKey { get { return "ResourceGroup"; } }
 
         public override string FriendlyObjectName { get { return "Resource Group"; } }
 
+        public override async Task RefreshFromSource()
+        {
+            //throw new NotImplementedException();
+        }
 
         public override void SetTargetName(string targetName, TargetSettings targetSettings)
         {

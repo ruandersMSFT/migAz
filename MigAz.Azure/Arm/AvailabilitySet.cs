@@ -13,30 +13,39 @@ namespace MigAz.Azure.Arm
 {
     public class AvailabilitySet : ArmResource, IAvailabilitySetSource
     {
-        private List<VirtualMachine> _VirtualMachines = new List<VirtualMachine>();
-
         public AvailabilitySet(AzureSubscription azureSubscription, JToken resourceToken) : base(azureSubscription, resourceToken)
         {
         }
 
-        public Int32 PlatformUpdateDomainCount => (Int32)ResourceToken["properties"]["platformUpdateDomainCount"];
-        public Int32 PlatformFaultDomainCount => (Int32)ResourceToken["properties"]["platformFaultDomainCount"];
-        public string SkuName => (string)ResourceToken["sku"]["name"];
-
-        public List<VirtualMachine> VirtualMachines
+        public Int32? PlatformUpdateDomainCount
         {
-            get { return _VirtualMachines; }
+            get
+            {
+                return (Int32?)ResourceToken.SelectToken("properties.platformUpdateDomainCount");
+            }
         }
 
-        public override string ToString()
+        public Int32? PlatformFaultDomainCount
         {
-            return this.Name;
-        }
-        internal new async Task InitializeChildrenAsync()
-        {
-            await base.InitializeChildrenAsync();
+            get
+            {
+                return (Int32?)ResourceToken.SelectToken("properties.platformFaultDomainCount");
+            }
         }
 
+        public string SkuName
+        {
+            get { return (string)ResourceToken.SelectToken("sku.name"); }
+        }
+
+        public List<string> VirtualMachineIds
+        {
+            get
+            {
+                List<string> virtualMachineIds = ResourceToken.SelectToken("properties.virtualMachines").Select(x => (string)x.SelectToken("id")).ToList();
+                return virtualMachineIds;
+            }
+        }
 
     }
 }

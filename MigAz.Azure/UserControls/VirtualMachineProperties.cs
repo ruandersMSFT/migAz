@@ -70,7 +70,7 @@ namespace MigAz.Azure.UserControls
                     lblTargetLocationRequired.Enabled = false;
                     lblTargetLocationRequired.Visible = false;
 
-                    if (targetTreeView.TargetResourceGroup.TargetLocation.VMSizes != null)
+                    if (targetTreeView.TargetResourceGroup.TargetLocation.VMSizes != null && _VirtualMachine.OSVirtualHardDisk != null)
                     {
                         foreach (Arm.VMSize vmSize in targetTreeView.TargetResourceGroup.TargetLocation.VMSizes)
                         {

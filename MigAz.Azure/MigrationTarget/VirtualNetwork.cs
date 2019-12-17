@@ -21,24 +21,24 @@ namespace MigAz.Azure.MigrationTarget
 
         #region Constructors
 
-        public VirtualNetwork() : base(ArmConst.MicrosoftNetwork, ArmConst.VirtualNetworks, null) { }
+        public VirtualNetwork() : base(null, ArmConst.MicrosoftNetwork, ArmConst.VirtualNetworks, null, null) { }
 
-        public VirtualNetwork(Asm.VirtualNetwork virtualNetwork, List<NetworkSecurityGroup> networkSecurityGroups, List<RouteTable> routeTables, TargetSettings targetSettings, ILogProvider logProvider) : base(ArmConst.MicrosoftNetwork, ArmConst.VirtualNetworks, logProvider)
+        public VirtualNetwork(AzureSubscription azureSubscription, Asm.VirtualNetwork virtualNetwork, List<NetworkSecurityGroup> networkSecurityGroups, List<RouteTable> routeTables, TargetSettings targetSettings, ILogProvider logProvider) : base(azureSubscription, ArmConst.MicrosoftNetwork, ArmConst.VirtualNetworks, targetSettings, logProvider)
         {
-            this.SourceVirtualNetwork = virtualNetwork;
+            this.Source = virtualNetwork;
             this.SetTargetName(virtualNetwork.Name, targetSettings);
 
             if (virtualNetwork.Gateways2 != null)
             {
                 foreach (Asm.VirtualNetworkGateway virtualNetworkGateway in virtualNetwork.Gateways2)
                 {
-                    TargetVirtualNetworkGateways.Add(new VirtualNetworkGateway(virtualNetworkGateway, targetSettings, logProvider));
+                    TargetVirtualNetworkGateways.Add(new VirtualNetworkGateway(this.AzureSubscription, virtualNetworkGateway, targetSettings, logProvider));
                 }
             }
 
             foreach (Asm.Subnet subnet in virtualNetwork.Subnets)
             {
-                this.TargetSubnets.Add(new Subnet(this, subnet, networkSecurityGroups, routeTables, targetSettings, logProvider));
+                this.TargetSubnets.Add(new Subnet(this.AzureSubscription, this, subnet, targetSettings, logProvider));
             }
 
             foreach (String addressPrefix in virtualNetwork.AddressPrefixes)
@@ -52,35 +52,15 @@ namespace MigAz.Azure.MigrationTarget
             }
         }
 
-        public VirtualNetwork(Arm.VirtualNetwork virtualNetwork, List<NetworkSecurityGroup> networkSecurityGroups, List<RouteTable> routeTables, TargetSettings targetSettings, ILogProvider logProvider) : base(ArmConst.MicrosoftNetwork, ArmConst.VirtualNetworks, logProvider)
+        public VirtualNetwork(AzureSubscription azureSubscription, Arm.VirtualNetwork virtualNetwork, List<NetworkSecurityGroup> networkSecurityGroups, List<RouteTable> routeTables, TargetSettings targetSettings, ILogProvider logProvider) : base(azureSubscription, ArmConst.MicrosoftNetwork, ArmConst.VirtualNetworks, targetSettings, logProvider)
         {
-            this.SourceVirtualNetwork = virtualNetwork;
+            this.Source = virtualNetwork;
             this.SetTargetName(virtualNetwork.Name, targetSettings);
-
-            foreach (Arm.VirtualNetworkGateway virtualNetworkGateway in virtualNetwork.VirtualNetworkGateways)
-            {
-                TargetVirtualNetworkGateways.Add(new VirtualNetworkGateway(virtualNetworkGateway, targetSettings, logProvider));
-            }
-
-            foreach (Arm.Subnet subnet in virtualNetwork.Subnets)
-            {
-                this.TargetSubnets.Add(new Subnet(this, subnet, networkSecurityGroups, routeTables, targetSettings, logProvider));
-            }
-
-            foreach (String addressPrefix in virtualNetwork.AddressPrefixes)
-            {
-                this.AddressPrefixes.Add(addressPrefix);
-            }
-
-            foreach (String dnsServer in virtualNetwork.DnsServers)
-            {
-                this.DnsServers.Add(dnsServer);
-            }
         }
 
-        public VirtualNetwork(IVirtualNetwork virtualNetwork, TargetSettings targetSettings, ILogProvider logProvider) : base(ArmConst.MicrosoftNetwork, ArmConst.VirtualNetworks, logProvider)
+        public VirtualNetwork(AzureSubscription azureSubscription, IVirtualNetwork virtualNetwork, TargetSettings targetSettings, ILogProvider logProvider) : base(azureSubscription, ArmConst.MicrosoftNetwork, ArmConst.VirtualNetworks, targetSettings, logProvider)
         {
-            this.SourceVirtualNetwork = virtualNetwork;
+            this.Source = virtualNetwork;
             this.SetTargetName(virtualNetwork.Name, targetSettings);
             foreach (String addressPrefix in virtualNetwork.AddressPrefixes)
             {
@@ -93,26 +73,12 @@ namespace MigAz.Azure.MigrationTarget
 
             foreach (ISubnet sourceSubnet in virtualNetwork.Subnets)
             {
-                MigrationTarget.Subnet targetSubnet = new Subnet(this, sourceSubnet, targetSettings, logProvider);
+                MigrationTarget.Subnet targetSubnet = new Subnet(this.AzureSubscription, this, sourceSubnet, targetSettings, logProvider);
                 this.TargetSubnets.Add(targetSubnet);
             }
         }
 
         #endregion
-
-        public IVirtualNetwork SourceVirtualNetwork { get; }
-
-        public String SourceName
-        {
-            get
-            {
-                if (this.SourceVirtualNetwork == null)
-                    return String.Empty;
-                else
-                    return this.SourceVirtualNetwork.ToString();
-            }
-        }
-
 
         public List<VirtualNetworkGateway> TargetVirtualNetworkGateways
         {
@@ -157,6 +123,40 @@ namespace MigAz.Azure.MigrationTarget
         {
             this.TargetName = targetName.Trim().Replace(" ", String.Empty);
             this.TargetNameResult = this.TargetName + targetSettings.VirtualNetworkSuffix;
+        }
+
+        public override async Task RefreshFromSource()
+        {
+            if (this.Source != null)
+            {
+                if (this.Source.GetType() == typeof(Arm.VirtualNetwork))
+                {
+                    Arm.VirtualNetwork virtualNetwork = (Arm.VirtualNetwork)this.Source;
+
+                    //foreach (Arm.VirtualNetworkGateway virtualNetworkGateway in virtualNetwork.VirtualNetworkGateways)
+                    //{
+                    //    TargetVirtualNetworkGateways.Add(new VirtualNetworkGateway(this.AzureSubscription, virtualNetworkGateway, targetSettings));
+                    //}
+
+                    this.TargetSubnets.Clear();
+                    foreach (Arm.Subnet subnet in virtualNetwork.Subnets)
+                    {
+                        this.TargetSubnets.Add(new Subnet(this.AzureSubscription, this, subnet, this.TargetSettings, this.LogProvider));
+                    }
+
+                    this.AddressPrefixes.Clear();
+                    foreach (String addressPrefix in virtualNetwork.AddressPrefixes)
+                    {
+                        this.AddressPrefixes.Add(addressPrefix);
+                    }
+
+                    this.DnsServers.Clear();
+                    foreach (String dnsServer in virtualNetwork.DnsServers)
+                    {
+                        this.DnsServers.Add(dnsServer);
+                    }
+                }
+            }
         }
     }
 }

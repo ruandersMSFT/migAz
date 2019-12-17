@@ -11,7 +11,7 @@ using System.Threading.Tasks;
 
 namespace MigAz.Azure.Arm
 {
-    public class RouteTable : ArmResource, IRouteTable
+    public class RouteTable : ArmResource, IRouteTable, IMigrationRouteTable
     {
         private List<Route> _Routes = new List<Route>();
 
@@ -20,22 +20,24 @@ namespace MigAz.Azure.Arm
 
         public RouteTable(AzureSubscription azureSubscription, JToken resourceToken) : base(azureSubscription, resourceToken)
         {
-            var routes = from route in ResourceToken["properties"]["routes"]
-                          select route;
-
-            foreach (var route in routes)
+            if (ResourceToken["properties"] != null)
             {
-                Route armRoute = new Route(this, route);
-                _Routes.Add(armRoute);
+                if (ResourceToken["properties"]["routes"] != null)
+                {
+                    var routes = from route in ResourceToken["properties"]["routes"]
+                                 select route;
+
+                    foreach (var route in routes)
+                    {
+                        Route armRoute = new Route(this, route);
+                        _Routes.Add(armRoute);
+                    }
+                }
             }
         }
 
         public List<Route> Routes => _Routes;
 
-        public override string ToString()
-        {
-            return this.Name;
-        }
     }
 }
 

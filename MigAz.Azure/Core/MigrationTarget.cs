@@ -18,13 +18,18 @@ namespace MigAz.Azure.Core
         String _ProviderNamespace = String.Empty;
         String _ResourceType = String.Empty;
         ILogProvider _LogProvider = null;
+        TargetSettings _TargetSettings = null;
+        AzureSubscription _AzureSubscription = null;
+        object _Source = null;
 
         private MigrationTarget() { }
 
-        public MigrationTarget(string providerNamespace, string resourceType, ILogProvider logProvider)
+        public MigrationTarget(AzureSubscription azureSubscription, string providerNamespace, string resourceType, TargetSettings targetSettings, ILogProvider logProvider)
         {
+            _AzureSubscription = azureSubscription;
             _ProviderNamespace = providerNamespace;
             _ResourceType = resourceType;
+            _TargetSettings = targetSettings;
             _LogProvider = logProvider;
         }
 
@@ -46,6 +51,16 @@ namespace MigAz.Azure.Core
             {
                 MessageBox.Show(message, function);
             }
+        }
+
+        public TargetSettings TargetSettings
+        {
+            get { return _TargetSettings; }
+        }
+
+        public AzureSubscription AzureSubscription
+        {
+            get { return _AzureSubscription; }
         }
 
         public string ApiVersion 
@@ -75,6 +90,39 @@ namespace MigAz.Azure.Core
         public string ProviderNamespace { get { return _ProviderNamespace; } }
         public string ResourceType { get { return _ResourceType; } }
 
+        public object Source
+        {
+            get { return _Source; }
+            set
+            {
+                _Source = value;
+
+                if (_Source != null)
+                {
+                    if (_Source.GetType().BaseType == typeof(Arm.ArmResource))
+                    {
+                        Arm.ArmResource armResource = (Arm.ArmResource)_Source;
+                        armResource.AfterResourceTokenChanged += Source_AfterSourceChanged;
+                    }
+                }
+            }
+        }
+
+        private async Task Source_AfterSourceChanged()
+        {
+            this.RefreshFromSource();
+        }
+
+        public String SourceName
+        {
+            get
+            {
+                if (this.Source == null)
+                    return String.Empty;
+                else
+                    return this.Source.ToString();
+            }
+        }
         public string TargetName { get; set; }
         public string TargetNameResult { get; set; }
         public abstract void SetTargetName(string targetName, TargetSettings targetSettings);
@@ -86,6 +134,8 @@ namespace MigAz.Azure.Core
 
         public abstract string ImageKey { get; }
         public abstract string FriendlyObjectName { get; }
+
+        public abstract Task RefreshFromSource();
 
         public static String GetImageKey(Type migrationType)
         {

@@ -13,6 +13,7 @@ using MigAz.Azure.Arm;
 using MigAz.Azure;
 using MigAz.Azure.Core.Interface;
 using MigAz.Azure.Core;
+using MigAz.Azure.Interface;
 
 namespace MigAz.Providers
 {
@@ -81,7 +82,7 @@ namespace MigAz.Providers
                             Azure.MigrationTarget.StorageAccount storageAccount = (Azure.MigrationTarget.StorageAccount)treeNode.Tag;
 
                             SaveSelectioStorageAccount saveSelectionStorageAccount = new SaveSelectioStorageAccount();
-                            saveSelectionStorageAccount.StorageAccountName = storageAccount.SourceAccount.Name;
+                            saveSelectionStorageAccount.StorageAccountName = ((IStorageAccount)storageAccount.Source).Name;
                             saveSelectionStorageAccount.TargetStorageAccountName = storageAccount.TargetName;
 
                             saveSelection.StorageAccounts.Add(saveSelectionStorageAccount);

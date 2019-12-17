@@ -13,6 +13,7 @@ using MigAz.Azure;
 using MigAz.Azure.UserControls;
 using MigAz.Azure.MigrationTarget;
 using MigAz.Azure.Core;
+using MigAz.Azure.Core.Interface;
 
 namespace MigAz.Tests
 {
@@ -146,7 +147,7 @@ namespace MigAz.Tests
             await artifacts.ValidateAzureResources();
             Assert.IsFalse(artifacts.HasErrors, "Template Generation cannot occur as the are error(s).");
 
-            ManagedDiskStorage managedDiskStorage = new ManagedDiskStorage(artifacts.VirtualMachines[0].OSVirtualHardDisk.SourceDisk);
+            ManagedDiskStorage managedDiskStorage = new ManagedDiskStorage((IDisk)artifacts.VirtualMachines[0].OSVirtualHardDisk.Source);
             managedDiskStorage.StorageAccountType = Azure.Core.Interface.StorageAccountType.Premium_LRS;
             artifacts.VirtualMachines[0].OSVirtualHardDisk.TargetStorage = managedDiskStorage;
             await artifacts.ValidateAzureResources();

@@ -38,19 +38,20 @@ namespace MigAz.Azure.UserControls
             // 
             this.treeAzureARM.CheckBoxes = true;
             this.treeAzureARM.Location = new System.Drawing.Point(0, 0);
+            this.treeAzureARM.Margin = new System.Windows.Forms.Padding(2);
             this.treeAzureARM.Name = "treeAzureARM";
-            this.treeAzureARM.Size = new System.Drawing.Size(324, 435);
+            this.treeAzureARM.Size = new System.Drawing.Size(217, 284);
             this.treeAzureARM.TabIndex = 72;
             this.treeAzureARM.AfterCheck += new System.Windows.Forms.TreeViewEventHandler(this.treeAzureResourcesSource_AfterCheck);
+            this.treeAzureARM.BeforeExpand += new System.Windows.Forms.TreeViewCancelEventHandler(this.treeAzureARM_BeforeExpand);
             // 
             // TreeViewSourceResourceManager
             // 
-            this.AutoScaleDimensions = new System.Drawing.SizeF(9F, 20F);
+            this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.Controls.Add(this.treeAzureARM);
-            this.Margin = new System.Windows.Forms.Padding(4, 5, 4, 5);
             this.Name = "TreeViewSourceResourceManager";
-            this.Size = new System.Drawing.Size(576, 537);
+            this.Size = new System.Drawing.Size(384, 349);
             this.Resize += new System.EventHandler(this.TreeViewSourceResourceManager_Resize);
             this.ResumeLayout(false);
 

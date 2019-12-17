@@ -7,14 +7,16 @@ using MigAz.Azure.Core.Interface;
 using Newtonsoft.Json.Linq;
 using System;
 using System.Threading.Tasks;
+using System.Collections.Generic;
 
 namespace MigAz.Azure.Arm
 {
-    public class ResourceGroup
+    public class ResourceGroup : IResourceGroup
     {
         private JObject _ResourceGroupJson;
         private AzureEnvironment _AzureEnvironment;
         private AzureSubscription _AzureSubscription;
+        private List<ArmResource> _Resources = new List<ArmResource>();
 
         internal ResourceGroup(JObject resourceGroupJson, AzureEnvironment azureEnvironment, AzureSubscription azureSubscription)
         {
@@ -43,6 +45,11 @@ namespace MigAz.Azure.Arm
         {
             get;
             private set;
+        }
+
+        public List<ArmResource> Resources
+        {
+            get { return _Resources; }
         }
 
         public override string ToString()

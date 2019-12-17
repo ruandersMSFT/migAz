@@ -82,23 +82,26 @@ namespace MigAz.Azure.UserControls
                 else
                     rbAcceleratedNetworkingDisabled.Checked = true;
 
-                if (_TargetNetworkInterface.SourceNetworkInterface != null)
+                if (_TargetNetworkInterface.Source != null)
                 {
-                    if (_TargetNetworkInterface.SourceNetworkInterface.GetType() == typeof(Azure.Asm.NetworkInterface))
+                    if (_TargetNetworkInterface.Source.GetType() == typeof(Azure.Asm.NetworkInterface))
                     {
-                        Azure.Asm.NetworkInterface asmNetworkInterface = (Azure.Asm.NetworkInterface)_TargetNetworkInterface.SourceNetworkInterface;
+                        Azure.Asm.NetworkInterface asmNetworkInterface = (Azure.Asm.NetworkInterface)_TargetNetworkInterface.Source;
 
                         lblVirtualNetworkName.Text = asmNetworkInterface.NetworkInterfaceIpConfigurations[0].VirtualNetworkName;
                         lblSubnetName.Text = asmNetworkInterface.NetworkInterfaceIpConfigurations[0].SubnetName;
                         lblStaticIpAddress.Text = asmNetworkInterface.NetworkInterfaceIpConfigurations[0].PrivateIpAddress;
                     }
-                    else if (_TargetNetworkInterface.SourceNetworkInterface.GetType() == typeof(Azure.Arm.NetworkInterface))
+                    else if (_TargetNetworkInterface.Source.GetType() == typeof(Azure.Arm.NetworkInterface))
                     {
-                        Azure.Arm.NetworkInterface armNetworkInterface = (Azure.Arm.NetworkInterface)_TargetNetworkInterface.SourceNetworkInterface;
+                        Azure.Arm.NetworkInterface armNetworkInterface = (Azure.Arm.NetworkInterface)_TargetNetworkInterface.Source;
 
-                        lblVirtualNetworkName.Text = armNetworkInterface.NetworkInterfaceIpConfigurations[0].VirtualNetworkName;
-                        lblSubnetName.Text = armNetworkInterface.NetworkInterfaceIpConfigurations[0].SubnetName;
-                        lblStaticIpAddress.Text = armNetworkInterface.NetworkInterfaceIpConfigurations[0].PrivateIpAddress;
+                        if (armNetworkInterface.NetworkInterfaceIpConfigurations.Count > 0)
+                        {
+                            // todo now russell lblVirtualNetworkName.Text = armNetworkInterface.NetworkInterfaceIpConfigurations[0].VirtualNetworkName;
+                            // todo now russell lblSubnetName.Text = armNetworkInterface.NetworkInterfaceIpConfigurations[0].SubnetName;
+                            lblStaticIpAddress.Text = armNetworkInterface.NetworkInterfaceIpConfigurations[0].PrivateIpAddress;
+                        }
                     }
                 }
 

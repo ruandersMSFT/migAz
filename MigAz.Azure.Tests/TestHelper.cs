@@ -70,7 +70,7 @@ namespace MigAz.Tests
         internal static async Task<Azure.MigrationTarget.ResourceGroup> GetTargetResourceGroup(AzureContext azureContext)
         {
             TargetSettings targetSettings = new FakeSettingsProvider().GetTargetSettings();
-            Azure.MigrationTarget.ResourceGroup targetResourceGroup = new Azure.MigrationTarget.ResourceGroup(targetSettings, null);
+            Azure.MigrationTarget.ResourceGroup targetResourceGroup = new Azure.MigrationTarget.ResourceGroup(null, targetSettings, null); // TODO: LogProvider
             targetResourceGroup.TargetLocation = azureContext.AzureSubscription.Locations[0];
             return targetResourceGroup;
         }

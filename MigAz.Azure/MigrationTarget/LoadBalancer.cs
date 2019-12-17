@@ -18,10 +18,8 @@ namespace MigAz.Azure.MigrationTarget
         Internal
     }
 
-    public class LoadBalancer : Core.MigrationTarget
+    public class LoadBalancer : Core.MigrationTarget //ILoadBalancer
     {
-        private String _SourceName = String.Empty;
-        private ILoadBalancer _source;
         private List<FrontEndIpConfiguration> _FrontEndIpConfiguration = new List<FrontEndIpConfiguration>();
         private List<BackEndAddressPool> _BackEndAddressPools = new List<BackEndAddressPool>();
         private List<LoadBalancingRule> _LoadBalancingRules = new List<LoadBalancingRule>();
@@ -31,18 +29,18 @@ namespace MigAz.Azure.MigrationTarget
 
         #region Constructors
 
-        public LoadBalancer() : base(ArmConst.MicrosoftNetwork, ArmConst.LoadBalancers, null)
+        public LoadBalancer() : base(null, ArmConst.MicrosoftNetwork, ArmConst.LoadBalancers, null, null)
         {
             new FrontEndIpConfiguration(this);
         }
 
-        public LoadBalancer(string targetName, TargetSettings targetSettings, ILogProvider logProvider) : base(ArmConst.MicrosoftNetwork, ArmConst.LoadBalancers, logProvider)
+        public LoadBalancer(AzureSubscription azureSubscription, string targetName, TargetSettings targetSettings, ILogProvider logProvider) : base(azureSubscription, ArmConst.MicrosoftNetwork, ArmConst.LoadBalancers, targetSettings, logProvider)
         {
             this.SetTargetName(targetName, targetSettings);
             new FrontEndIpConfiguration(this);
         }
 
-        public LoadBalancer(Arm.LoadBalancer sourceLoadBalancer, TargetSettings targetSettings, ILogProvider logProvider) : base(ArmConst.MicrosoftNetwork, ArmConst.LoadBalancers, logProvider)
+        public LoadBalancer(AzureSubscription azureSubscription, Arm.LoadBalancer sourceLoadBalancer, TargetSettings targetSettings, ILogProvider logProvider) : base(azureSubscription, ArmConst.MicrosoftNetwork, ArmConst.LoadBalancers, targetSettings, logProvider)
         {
             this.Source = sourceLoadBalancer;
             this.SetTargetName(sourceLoadBalancer.Name, targetSettings);
@@ -83,30 +81,6 @@ namespace MigAz.Azure.MigrationTarget
             set { _LoadBalancerType = value; }
         }
 
-        public ILoadBalancer Source
-        {
-            get { return _source; }
-            set
-            {
-                _source = value;
-            }
-        }
-
-        public String SourceName
-        {
-            get
-            {
-                if (this.Source == null)
-                    return _SourceName;
-                else
-                    return this.Source.Name;
-            }
-            set
-            {
-                _SourceName = value;
-            }
-        }
-
         public List<BackEndAddressPool> BackEndAddressPools
         {
             get { return _BackEndAddressPools; }
@@ -142,6 +116,10 @@ namespace MigAz.Azure.MigrationTarget
 
         public override string FriendlyObjectName { get { return "Load Balancer"; } }
 
+        public override async Task RefreshFromSource()
+        {
+            //throw new NotImplementedException();
+        }
 
         public override void SetTargetName(string targetName, TargetSettings targetSettings)
         {

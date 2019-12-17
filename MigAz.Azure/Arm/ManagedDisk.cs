@@ -45,11 +45,6 @@ namespace MigAz.Azure.Arm
             _VirtualMachineDiskJToken = jToken;
         }
 
-        public string Type
-        {
-            get { return (string)ResourceToken["type"]; }
-        }
-
         public Int32 DiskSizeGb
         {
             get
@@ -263,11 +258,6 @@ namespace MigAz.Azure.Arm
         }
 
         #endregion
-
-        public override string ToString()
-        {
-            return this.Name;
-        }
 
         public async Task<string> GetSASUrlAsync(int tokenDurationSeconds)
         {

@@ -20,29 +20,44 @@ namespace MigAz.Azure.Arm
 
         public LoadBalancer(AzureSubscription azureSubscription, JToken resourceToken) : base(azureSubscription, resourceToken)
         {
-            // Create objects
-            foreach (JToken frontEndIpConfigurationToken in ResourceToken["properties"]["frontendIPConfigurations"])
+            if (ResourceToken["properties"] != null)
             {
-                FrontEndIpConfiguration frontEndIpConfiguration = new FrontEndIpConfiguration(this, frontEndIpConfigurationToken);
-                _FrontEndIpConfigurations.Add(frontEndIpConfiguration);
-            }
+                if (ResourceToken["properties"]["frontendIPConfigurations"] != null)
+                {
+                    // Create objects
+                    foreach (JToken frontEndIpConfigurationToken in ResourceToken["properties"]["frontendIPConfigurations"])
+                    {
+                        FrontEndIpConfiguration frontEndIpConfiguration = new FrontEndIpConfiguration(this, frontEndIpConfigurationToken);
+                        _FrontEndIpConfigurations.Add(frontEndIpConfiguration);
+                    }
+                }
 
-            foreach (JToken backendAddressPoolToken in ResourceToken["properties"]["backendAddressPools"])
-            {
-                BackEndAddressPool backEndAddressPool = new BackEndAddressPool(this, backendAddressPoolToken);
-                _BackEndAddressPool.Add(backEndAddressPool);
-            }
+                if (ResourceToken["properties"]["backendAddressPools"] != null)
+                {
+                    foreach (JToken backendAddressPoolToken in ResourceToken["properties"]["backendAddressPools"])
+                    {
+                        BackEndAddressPool backEndAddressPool = new BackEndAddressPool(this, backendAddressPoolToken);
+                        _BackEndAddressPool.Add(backEndAddressPool);
+                    }
+                }
 
-            foreach (JToken loadBalancingRuleToken in ResourceToken["properties"]["loadBalancingRules"])
-            {
-                LoadBalancingRule loadBalancingRule = new LoadBalancingRule(this, loadBalancingRuleToken);
-                _LoadBalancingRules.Add(loadBalancingRule);
-            }
+                if (ResourceToken["properties"]["loadBalancingRules"] != null)
+                {
+                    foreach (JToken loadBalancingRuleToken in ResourceToken["properties"]["loadBalancingRules"])
+                    {
+                        LoadBalancingRule loadBalancingRule = new LoadBalancingRule(this, loadBalancingRuleToken);
+                        _LoadBalancingRules.Add(loadBalancingRule);
+                    }
+                }
 
-            foreach (JToken probeToken in ResourceToken["properties"]["probes"])
-            {
-                Probe probe = new Probe(this, probeToken);
-                _Probes.Add(probe);
+                if (ResourceToken["properties"]["probes"] != null)
+                {
+                    foreach (JToken probeToken in ResourceToken["properties"]["probes"])
+                    {
+                        Probe probe = new Probe(this, probeToken);
+                        _Probes.Add(probe);
+                    }
+                }
             }
 
             // Bind object relations

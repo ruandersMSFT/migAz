@@ -34,18 +34,18 @@ namespace MigAz.Azure.UserControls
                 txtTargetName.Text = targetSubnet.TargetName;
                 txtAddressSpace.Text = targetSubnet.AddressPrefix;
 
-                if (targetSubnet.SourceSubnet != null)
+                if (targetSubnet.Source != null)
                 {
-                    if (targetSubnet.SourceSubnet.GetType() == typeof(Azure.Asm.Subnet))
+                    if (targetSubnet.Source.GetType() == typeof(Azure.Asm.Subnet))
                     {
-                        Asm.Subnet asmSubnet = (Asm.Subnet)targetSubnet.SourceSubnet;
+                        Asm.Subnet asmSubnet = (Asm.Subnet)targetSubnet.Source;
 
                         lblSourceName.Text = asmSubnet.Name;
                         lblAddressSpace.Text = asmSubnet.AddressPrefix;
                     }
-                    else if (targetSubnet.SourceSubnet.GetType() == typeof(Azure.Arm.Subnet))
+                    else if (targetSubnet.Source.GetType() == typeof(Azure.Arm.Subnet))
                     {
-                        Arm.Subnet armSubnet = (Arm.Subnet)targetSubnet.SourceSubnet;
+                        Arm.Subnet armSubnet = (Arm.Subnet)targetSubnet.Source;
 
                         lblSourceName.Text = armSubnet.Name;
                         lblAddressSpace.Text = armSubnet.AddressPrefix;
@@ -58,8 +58,9 @@ namespace MigAz.Azure.UserControls
                     txtTargetName.Enabled = false;
                 }
 
-                networkSecurityGroup.Bind(_Subnet.NetworkSecurityGroup, _TargetTreeView);
-                routeTable.Bind(_Subnet.RouteTable, _TargetTreeView);
+                // todo now russell
+                //networkSecurityGroup.Bind(_Subnet.NetworkSecurityGroup, _TargetTreeView);
+                //routeTable.Bind(_Subnet.RouteTable, _TargetTreeView);
             }
             finally
             {

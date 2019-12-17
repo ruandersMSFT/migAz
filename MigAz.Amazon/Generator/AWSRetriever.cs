@@ -89,7 +89,7 @@ namespace MigAz.AWS.Generator
                     foreach (var vpc in vpcResponse.Vpcs)
                     {
                         MigAz.AWS.MigrationSource.VirtualNetwork sourceVirtualNetwork = new MigrationSource.VirtualNetwork(_awsObjectRetriever, vpc);
-                        Azure.MigrationTarget.VirtualNetwork targetVirtualNetwork = new Azure.MigrationTarget.VirtualNetwork(sourceVirtualNetwork, null, this._LogProvider);
+                        Azure.MigrationTarget.VirtualNetwork targetVirtualNetwork = new Azure.MigrationTarget.VirtualNetwork(null, sourceVirtualNetwork, null, null); // todo not null AzureSubscription + Log Provider
                         targetVirtualNetworks.Add(targetVirtualNetwork);
 
                         TreeNode vpcTreeNode = new TreeNode(sourceVirtualNetwork.Id + " - " + sourceVirtualNetwork.Name);
@@ -173,16 +173,16 @@ namespace MigAz.AWS.Generator
                         {
                             foreach (Azure.MigrationTarget.VirtualNetwork targetVirtualNetwork in targetVirtualNetworks)
                             {
-                                if (targetVirtualNetwork.SourceVirtualNetwork != null)
+                                if (targetVirtualNetwork.Source != null)
                                 {
-                                    AWS.MigrationSource.VirtualNetwork amazonVirtualNetwork = (AWS.MigrationSource.VirtualNetwork)targetVirtualNetwork.SourceVirtualNetwork;
+                                    AWS.MigrationSource.VirtualNetwork amazonVirtualNetwork = (AWS.MigrationSource.VirtualNetwork)targetVirtualNetwork.Source;
                                     if (amazonVirtualNetwork.Id == loadBalancerDescription.VPCId)
                                     {
                                         targetFrontEndIpConfiguration.TargetVirtualNetwork = targetVirtualNetwork;
 
                                         foreach (Azure.MigrationTarget.Subnet targetSubnet in targetVirtualNetwork.TargetSubnets)
                                         {
-                                            if (targetSubnet.SourceSubnet.Id == loadBalancerDescription.Subnets[0])
+                                            if (((ISubnet)targetSubnet.Source).Id == loadBalancerDescription.Subnets[0])
                                             {
                                                 targetFrontEndIpConfiguration.TargetSubnet = targetSubnet;
                                                 break;

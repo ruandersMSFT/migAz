@@ -162,7 +162,7 @@ namespace MigAz.Azure.Generator
                 if (_ExportArtifacts.HasErrors)
                 {
                     throw new InvalidOperationException("Export Streams cannot be generated when there are error(s).  Please resolve all template error(s) to enable export stream generation.");
-                } LogProvider.WriteLog("GenerateStreams", "Start processing selected Network Security Groups");
+                } 
 
 
                 LogProvider.WriteLog("GenerateStreams", "Start processing selected Virtual Network Gateway(s)");
@@ -203,6 +203,15 @@ namespace MigAz.Azure.Generator
                 }
                 LogProvider.WriteLog("GenerateStreams", "End processing selected Storage Accounts");
 
+                LogProvider.WriteLog("GenerateStreams", "Start processing selected Application Security Groups");
+                foreach (MigrationTarget.ApplicationSecurityGroup targetApplicationSecurityGroup in _ExportArtifacts.ApplicationSecurityGroups)
+                {
+                    StatusProvider.UpdateStatus("BUSY: Exporting Application Security Group : " + targetApplicationSecurityGroup.ToString());
+                    await BuildApplicationSecurityGroup(targetApplicationSecurityGroup);
+                }
+                LogProvider.WriteLog("GenerateStreams", "End processing selected Application Security Groups");
+
+                LogProvider.WriteLog("GenerateStreams", "Start processing selected Network Security Groups");
                 foreach (MigrationTarget.NetworkSecurityGroup targetNetworkSecurityGroup in _ExportArtifacts.NetworkSecurityGroups)
                 {
                     StatusProvider.UpdateStatus("BUSY: Exporting Network Security Group : " + targetNetworkSecurityGroup.ToString());
@@ -218,13 +227,13 @@ namespace MigAz.Azure.Generator
                 }
                 LogProvider.WriteLog("GenerateStreams", "End processing selected Route Tables");
 
-                LogProvider.WriteLog("GenerateStreams", "Start processing selected Network Security Groups");
+                LogProvider.WriteLog("GenerateStreams", "Start processing selected Public IPs");
                 foreach (MigrationTarget.PublicIp targetPublicIp in _ExportArtifacts.PublicIPs)
                 {
                     StatusProvider.UpdateStatus("BUSY: Exporting Public IP : " + targetPublicIp.ToString());
                     await BuildPublicIPAddressObject(targetPublicIp);
                 }
-                LogProvider.WriteLog("GenerateStreams", "End processing selected Network Security Groups");
+                LogProvider.WriteLog("GenerateStreams", "End processing selected Public IPs");
 
                 LogProvider.WriteLog("GenerateStreams", "Start processing selected Virtual Networks");
                 foreach (Azure.MigrationTarget.VirtualNetwork virtualNetwork in _ExportArtifacts.VirtualNetworks)
@@ -306,6 +315,23 @@ namespace MigAz.Azure.Generator
             LogProvider.WriteLog("GenerateStreams", "End - Execution " + this.ExecutionGuid.ToString());
         }
 
+        private async Task<ApplicationSecurityGroup> BuildApplicationSecurityGroup(MigrationTarget.ApplicationSecurityGroup targetApplicationSecurityGroup)
+        {
+            LogProvider.WriteLog("BuildApplicationSecurityGroup", "Start");
+
+            ApplicationSecurityGroup applicationSecurityGroup = new ApplicationSecurityGroup(this.ExecutionGuid)
+            {
+                name = targetApplicationSecurityGroup.ToString(),
+                location = "[resourceGroup().location]",
+                apiVersion = targetApplicationSecurityGroup.ApiVersion,
+            };
+
+            this.AddResource(applicationSecurityGroup);
+
+            LogProvider.WriteLog("BuildApplicationSecurityGroup", "End");
+
+            return applicationSecurityGroup;
+        }
 
         public void Write()
         {
@@ -639,10 +665,9 @@ namespace MigAz.Azure.Generator
                 // add Network Security Group if exists
                 if (targetSubnet.NetworkSecurityGroup != null)
                 {
-                    Core.ArmTemplate.NetworkSecurityGroup networksecuritygroup = await BuildNetworkSecurityGroup(targetSubnet.NetworkSecurityGroup);
                     // Add NSG reference to the subnet
                     Reference networksecuritygroup_ref = new Reference();
-                    networksecuritygroup_ref.id = "[concat(" + ArmConst.ResourceGroupId + ", '" + ArmConst.ProviderNetworkSecurityGroups + networksecuritygroup.name + "')]";
+                    networksecuritygroup_ref.id = "[concat(" + ArmConst.ResourceGroupId + ", '" + ArmConst.ProviderNetworkSecurityGroups + "todonowrussell" + "')]";
 
                     properties.networkSecurityGroup = networksecuritygroup_ref;
 
@@ -845,6 +870,37 @@ namespace MigAz.Azure.Generator
                 // if not system rule
                 if (!targetNetworkSecurityGroupRule.IsSystemRule)
                 {
+                    List<Reference> sourceApplicationSecurityGroups = null;
+                    List<Reference> destinationApplicationSecurityGroups = null;
+
+                    if (targetNetworkSecurityGroupRule.SourceApplicationSecurityGroups != null)
+                    {
+                        sourceApplicationSecurityGroups = new List<Reference>();
+                        foreach (MigrationTarget.ApplicationSecurityGroup applicationSecurityGroup in targetNetworkSecurityGroupRule.SourceApplicationSecurityGroups)
+                        {
+                            sourceApplicationSecurityGroups.Add(
+                                new Reference()
+                                {
+                                    id = "" //applicationSecurityGroup.Id
+                                }
+                            );
+                        }
+                    }
+
+                    if (targetNetworkSecurityGroupRule.DestinationApplicationSecurityGroups != null)
+                    {
+                        destinationApplicationSecurityGroups = new List<Reference>();
+                        foreach (MigrationTarget.ApplicationSecurityGroup applicationSecurityGroup in targetNetworkSecurityGroupRule.DestinationApplicationSecurityGroups)
+                        {
+                            destinationApplicationSecurityGroups.Add(
+                                new Reference()
+                                {
+                                    id = "" // applicationSecurityGroup.Id
+                                }
+                            ); 
+                        }
+                    }
+
                     SecurityRule_Properties securityrule_properties = new SecurityRule_Properties
                     {
                         description = targetNetworkSecurityGroupRule.ToString(),
@@ -852,8 +908,13 @@ namespace MigAz.Azure.Generator
                         priority = targetNetworkSecurityGroupRule.Priority,
                         access = targetNetworkSecurityGroupRule.Access,
                         sourceAddressPrefix = targetNetworkSecurityGroupRule.SourceAddressPrefix,
-                        destinationAddressPrefix = targetNetworkSecurityGroupRule.DestinationAddressPrefix,
+                        sourceAddressPrefixes = targetNetworkSecurityGroupRule.SourceAddressPrefixes,
                         sourcePortRange = targetNetworkSecurityGroupRule.SourcePortRange,
+                        sourcePortRanges = targetNetworkSecurityGroupRule.SourcePortRanges,
+                        sourceApplicationSecurityGroups = sourceApplicationSecurityGroups,
+                        destinationAddressPrefix = targetNetworkSecurityGroupRule.DestinationAddressPrefix,
+                        destinationAddressPrefixes = targetNetworkSecurityGroupRule.DestinationAddressPrefixes,
+                        destinationApplicationSecurityGroups = destinationApplicationSecurityGroups,
                         destinationPortRange = targetNetworkSecurityGroupRule.DestinationPortRange,
                         protocol = targetNetworkSecurityGroupRule.Protocol
                     };
@@ -1360,7 +1421,7 @@ namespace MigAz.Azure.Generator
 
         private async Task<BlobCopyDetail> BuildCopyBlob(MigrationTarget.Disk disk, MigrationTarget.ResourceGroup resourceGroup)
         {
-            if (disk.SourceDisk == null)
+            if (disk.Source == null)
                 return null;
 
             BlobCopyDetail copyblobdetail = new BlobCopyDetail();
@@ -1371,11 +1432,11 @@ namespace MigAz.Azure.Generator
             copyblobdetail.TargetResourceGroup = resourceGroup.ToString();
             copyblobdetail.TargetLocation = resourceGroup.TargetLocation.Name.ToString();
 
-            if (disk.SourceDisk != null)
+            if (disk.Source != null)
             {
-                if (disk.SourceDisk.GetType() == typeof(Asm.Disk))
+                if (disk.Source.GetType() == typeof(Asm.Disk))
                 {
-                    Asm.Disk asmClassicDisk = (Asm.Disk)disk.SourceDisk;
+                    Asm.Disk asmClassicDisk = (Asm.Disk)disk.Source;
 
                     copyblobdetail.SourceStorageAccount = asmClassicDisk.StorageAccountName;
                     copyblobdetail.SourceContainer = asmClassicDisk.StorageAccountContainer;
@@ -1384,9 +1445,9 @@ namespace MigAz.Azure.Generator
                     if (asmClassicDisk.SourceStorageAccount != null && asmClassicDisk.SourceStorageAccount.Keys != null)
                         copyblobdetail.SourceKey = asmClassicDisk.SourceStorageAccount.Keys.Primary;
                 }
-                else if (disk.SourceDisk.GetType() == typeof(Arm.ClassicDisk))
+                else if (disk.Source.GetType() == typeof(Arm.ClassicDisk))
                 {
-                    Arm.ClassicDisk armClassicDisk = (Arm.ClassicDisk)disk.SourceDisk;
+                    Arm.ClassicDisk armClassicDisk = (Arm.ClassicDisk)disk.Source;
 
                     copyblobdetail.SourceStorageAccount = armClassicDisk.StorageAccountName;
                     copyblobdetail.SourceContainer = armClassicDisk.StorageAccountContainer;
@@ -1395,9 +1456,9 @@ namespace MigAz.Azure.Generator
                     if (armClassicDisk.SourceStorageAccount != null && armClassicDisk.SourceStorageAccount.Keys != null)
                         copyblobdetail.SourceKey = armClassicDisk.SourceStorageAccount.Keys[0].Value;
                 }
-                else if (disk.SourceDisk.GetType() == typeof(Arm.ManagedDisk))
+                else if (disk.Source.GetType() == typeof(Arm.ManagedDisk))
                 {
-                    Arm.ManagedDisk armManagedDisk = (Arm.ManagedDisk)disk.SourceDisk;
+                    Arm.ManagedDisk armManagedDisk = (Arm.ManagedDisk)disk.Source;
 
                     copyblobdetail.SourceAbsoluteUri = await armManagedDisk.GetSASUrlAsync(_AccessSASTokenLifetime);
                     copyblobdetail.SourceExpiration = DateTime.UtcNow.AddSeconds(this.AccessSASTokenLifetimeSeconds);
@@ -1449,7 +1510,7 @@ namespace MigAz.Azure.Generator
                 }
             }
 
-            MigrationTarget.StorageAccount newTemporaryStorageAccount = new MigrationTarget.StorageAccount(disk.StorageAccountType, this.LogProvider);
+            MigrationTarget.StorageAccount newTemporaryStorageAccount = new MigrationTarget.StorageAccount(this.TargetSubscription, disk.StorageAccountType, disk.TargetSettings, this.LogProvider);
             _TemporaryStorageAccounts.Add(newTemporaryStorageAccount);
 
             return newTemporaryStorageAccount;

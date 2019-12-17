@@ -11,26 +11,36 @@ using System.Threading.Tasks;
 
 namespace MigAz.Azure.Arm
 {
-    public class NetworkSecurityGroup : ArmResource, INetworkSecurityGroup
+    public class NetworkSecurityGroup : ArmResource, INetworkSecurityGroup, IMigrationNetworkSecurityGroup
     {
-        private List<NetworkSecurityGroupRule> _Rules = new List<NetworkSecurityGroupRule>();
 
         private NetworkSecurityGroup() : base(null, null) { }
 
         public NetworkSecurityGroup(AzureSubscription azureSubscription, JToken resourceToken) : base(azureSubscription, resourceToken)
         {
-            foreach (JToken securityRulesToken in ResourceToken["properties"]["securityRules"])
+        }
+
+        public List<NetworkSecurityGroupRule> Rules
+        {
+            get
             {
-                _Rules.Add(new NetworkSecurityGroupRule(securityRulesToken));
+                List<NetworkSecurityGroupRule> _Rules = new List<NetworkSecurityGroupRule>();
+
+                if (ResourceToken["properties"] != null)
+                {
+                    if (ResourceToken["properties"]["securityRules"] != null)
+                    {
+                        foreach (JToken securityRulesToken in ResourceToken["properties"]["securityRules"])
+                        {
+                            _Rules.Add(new NetworkSecurityGroupRule(securityRulesToken));
+                        }
+                    }
+                }
+
+                return _Rules;
             }
         }
 
-        public List<NetworkSecurityGroupRule> Rules => _Rules;
-
-        public override string ToString()
-        {
-            return this.Name;
-        }
     }
 }
 

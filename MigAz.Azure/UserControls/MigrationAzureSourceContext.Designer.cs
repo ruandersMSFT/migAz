@@ -42,7 +42,7 @@ namespace MigAz.Azure.UserControls
             // 
             this.treeAzureASM.CheckBoxes = true;
             this.treeAzureASM.Location = new System.Drawing.Point(2, 131);
-            this.treeAzureASM.Margin = new System.Windows.Forms.Padding(2, 2, 2, 2);
+            this.treeAzureASM.Margin = new System.Windows.Forms.Padding(2);
             this.treeAzureASM.Name = "treeAzureASM";
             this.treeAzureASM.Size = new System.Drawing.Size(198, 284);
             this.treeAzureASM.TabIndex = 69;
@@ -96,6 +96,7 @@ namespace MigAz.Azure.UserControls
             this.treeViewSourceResourceManager1.AfterNodeChanged += new MigAz.Azure.UserControls.TreeViewSourceResourceManager.AfterNodeChangedHandler(this.treeViewSourceResourceManager1_AfterNodeChanged);
             this.treeViewSourceResourceManager1.ClearContext += new MigAz.Azure.UserControls.TreeViewSourceResourceManager.ClearContextHandler(this.treeViewSourceResourceManager1_ClearContext);
             this.treeViewSourceResourceManager1.AfterContextChanged += new MigAz.Azure.UserControls.TreeViewSourceResourceManager.AfterContextChangedHandler(this.treeViewSourceResourceManager1_AfterContextChanged);
+            this.treeViewSourceResourceManager1.BeforeExpand += new MigAz.Azure.UserControls.TreeViewSourceResourceManager.BeforeExpandChangedHandler(this.treeViewSourceResourceManager1_BeforeExpand);
             // 
             // MigrationAzureSourceContext
             // 

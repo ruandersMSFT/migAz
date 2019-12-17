@@ -11,34 +11,21 @@ namespace MigAz.Azure.MigrationTarget
 {
     public class LocalNetworkGateway : Core.MigrationTarget
     {
-        private ILocalNetworkGateway _SourceLocalNetworkGateway;
+        //private ILocalNetworkGateway _SourceLocalNetworkGateway;
         private string _GatewayIpAddress = String.Empty;
         private List<String> _AddressPrefixes = new List<string>();
 
         #region Constructors
 
-        private LocalNetworkGateway() : base(ArmConst.MicrosoftNetwork, ArmConst.LocalNetworkGateways, null) { }
+        private LocalNetworkGateway() : base(null, ArmConst.MicrosoftNetwork, ArmConst.LocalNetworkGateways, null, null) { }
 
-        public LocalNetworkGateway(ILocalNetworkGateway localNetworkGateway, TargetSettings targetSettings, ILogProvider logProvider) : base(ArmConst.MicrosoftNetwork, ArmConst.LocalNetworkGateways, logProvider)
+        public LocalNetworkGateway(AzureSubscription azureSubscription, ILocalNetworkGateway localNetworkGateway, TargetSettings targetSettings, ILogProvider logProvider) : base(azureSubscription, ArmConst.MicrosoftNetwork, ArmConst.LocalNetworkGateways, targetSettings, logProvider)
         {
-            this._SourceLocalNetworkGateway = localNetworkGateway;
+            this.Source = localNetworkGateway;
             this.SetTargetName(this.SourceName, targetSettings);
         }
 
         #endregion
-
-        public ILocalNetworkGateway SourceLocalNetworkGateway { get { return _SourceLocalNetworkGateway; } }
-
-        public String SourceName
-        {
-            get
-            {
-                if (this.SourceLocalNetworkGateway == null)
-                    return String.Empty;
-                else
-                    return this.SourceLocalNetworkGateway.ToString();
-            }
-        }
 
 
         public override string ImageKey { get { return "LocalNetworkGateway"; } }
@@ -60,6 +47,11 @@ namespace MigAz.Azure.MigrationTarget
         {
             this.TargetName = targetName.Trim().Replace(" ", String.Empty);
             this.TargetNameResult = this.TargetName;
+        }
+
+        public override async Task RefreshFromSource()
+        {
+            //throw new NotImplementedException();
         }
     }
 }

@@ -127,6 +127,14 @@ namespace MigAz.Azure.Core.ArmTemplate
         public string nextHopIpAddress;
     }
 
+    public class ApplicationSecurityGroup : ArmResource
+    {
+        public ApplicationSecurityGroup(Guid executionGuid) : base(executionGuid)
+        {
+            type = "Microsoft.Network/applicationSecurityGroups";
+        }
+    }
+
     public class NetworkSecurityGroup : ArmResource
     {
         public NetworkSecurityGroup(Guid executionGuid) : base(executionGuid)
@@ -150,10 +158,15 @@ namespace MigAz.Azure.Core.ArmTemplate
     {
         public string description;
         public string protocol;
-        public string sourcePortRange;
-        public string destinationPortRange;
         public string sourceAddressPrefix;
+        public List<string> sourceAddressPrefixes;
+        public string sourcePortRange;
+        public List<string> sourcePortRanges;
+        public List<Reference> sourceApplicationSecurityGroups;
         public string destinationAddressPrefix;
+        public List<string> destinationAddressPrefixes;
+        public List<Reference> destinationApplicationSecurityGroups;
+        public string destinationPortRange;
         public string access;
         public long priority;
         public string direction;

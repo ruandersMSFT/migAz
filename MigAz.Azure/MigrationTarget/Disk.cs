@@ -10,21 +10,22 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using MigAz.Azure.Arm;
 
 namespace MigAz.Azure.MigrationTarget
 {
-    public class Disk : Core.MigrationTarget
+    public class Disk : Core.MigrationTarget //<IDisk>
     {
         private Int32 _DiskSizeInGB = 0;
         private VirtualMachine _ParentVirtualMachine;
 
         #region Constructors
 
-        private Disk() : base(ArmConst.MicrosoftCompute, ArmConst.Disks, null) { }
+        private Disk() : base(null, ArmConst.MicrosoftCompute, ArmConst.Disks, null, null) { }
 
-        public Disk(Asm.Disk sourceDisk, VirtualMachine parentVirtualMachine, TargetSettings targetSettings, ILogProvider logProvider) : base(ArmConst.MicrosoftCompute, ArmConst.Disks, logProvider)
+        public Disk(AzureSubscription azureSubscription, Asm.Disk sourceDisk, VirtualMachine parentVirtualMachine, TargetSettings targetSettings, ILogProvider logProvider) : base(azureSubscription, ArmConst.MicrosoftCompute, ArmConst.Disks, targetSettings, logProvider)
         {
-            this.SourceDisk = sourceDisk;
+            this.Source = sourceDisk;
             this._ParentVirtualMachine = parentVirtualMachine;
             this.TargetStorage = new ManagedDiskStorage(sourceDisk);
 
@@ -36,43 +37,28 @@ namespace MigAz.Azure.MigrationTarget
             this.SourceStorageAccount = sourceDisk.SourceStorageAccount;
         }
 
-        public Disk(IArmDisk sourceDisk, VirtualMachine parentVirtualMachine, TargetSettings targetSettings, ILogProvider logProvider) : base(ArmConst.MicrosoftCompute, ArmConst.Disks, logProvider)
+        public Disk(AzureSubscription azureSubscription, IArmDisk sourceDisk, VirtualMachine parentVirtualMachine, TargetSettings targetSettings, ILogProvider logProvider) : base(azureSubscription, ArmConst.MicrosoftCompute, ArmConst.Disks, targetSettings, logProvider)
         {
-            this.SourceDisk = (IDisk)sourceDisk;
+            this.Source = (IDisk)sourceDisk;
             this._ParentVirtualMachine = parentVirtualMachine;
-            this.TargetStorage = new ManagedDiskStorage(sourceDisk);
 
             if (sourceDisk != null)
             {
                 if (sourceDisk.GetType() == typeof(Azure.Arm.ClassicDisk))
                 {
                     Azure.Arm.ClassicDisk armDisk = (Azure.Arm.ClassicDisk)sourceDisk;
-
-                    this.SetTargetName(armDisk.Name, targetSettings);
-                    this.Lun = armDisk.Lun;
-                    this.HostCaching = armDisk.Caching;
-                    this.DiskSizeInGB = armDisk.DiskSizeGb;
-                    this.TargetStorageAccountBlob = armDisk.StorageAccountBlob;
-                    this.SourceStorageAccount = armDisk.SourceStorageAccount;
-                    this.IsEncrypted = armDisk.IsEncrypted;
-                    this.DiskEncryptionKeySourceVaultId = armDisk.DiskEncryptionKeySourceVaultId;
-                    this.DiskEncryptionKeySecretUrl = armDisk.DiskEncryptionKeySecretUrl;
-                    this.KeyEncryptionKeySourceVaultId = armDisk.KeyEncryptionKeySourceVaultId;
-                    this.KeyEncryptionKeyKeyUrl = armDisk.KeyEncryptionKeyKeyUrl;
+                    this.SetTargetName(armDisk.Name, parentVirtualMachine.TargetSettings);
                 }
                 else if (sourceDisk.GetType() == typeof(Azure.Arm.ManagedDisk))
                 {
                     Azure.Arm.ManagedDisk armManagedDisk = (Azure.Arm.ManagedDisk)sourceDisk;
-
                     this.SetTargetName(armManagedDisk.Name, targetSettings);
-                    this.DiskSizeInGB = armManagedDisk.DiskSizeGb;
-                    this.IsEncrypted = armManagedDisk.IsEncrypted;
-                    this.DiskEncryptionKeySourceVaultId = armManagedDisk.DiskEncryptionKeySourceVaultId;
-                    this.DiskEncryptionKeySecretUrl = armManagedDisk.DiskEncryptionKeySecretUrl;
-                    this.KeyEncryptionKeySourceVaultId = armManagedDisk.KeyEncryptionKeySourceVaultId;
-                    this.KeyEncryptionKeyKeyUrl = armManagedDisk.KeyEncryptionKeyKeyUrl;
                 }
             }
+        }
+
+        public Disk(AzureSubscription azureSubscription, IArmDisk sourceDisk, TargetSettings targetSettings, ILogProvider logProvider) : this(azureSubscription, sourceDisk, null, targetSettings, logProvider)
+        {
         }
 
         #endregion
@@ -88,25 +74,12 @@ namespace MigAz.Azure.MigrationTarget
             get;set;
         }
 
-        public IDisk SourceDisk { get; set; }
-
         public bool IsEncrypted { get; set; }
 
         public string DiskEncryptionKeySourceVaultId { get; set; }
         public string DiskEncryptionKeySecretUrl { get; set; }
         public string KeyEncryptionKeySourceVaultId { get; set; }
         public string KeyEncryptionKeyKeyUrl { get; set; }
-
-        public String SourceName
-        {
-            get
-            {
-                if (this.SourceDisk == null)
-                    return String.Empty;
-                else
-                    return this.SourceDisk.ToString();
-            }
-        }
 
         public Int64? Lun
         {
@@ -199,10 +172,10 @@ namespace MigAz.Azure.MigrationTarget
         {
             get
             {
-                if (this.SourceDisk == null)
+                if (this.Source == null)
                     return false;
 
-                if (this.DiskSizeInGB < this.SourceDisk.DiskSizeGb)
+                if (this.DiskSizeInGB < ((IDisk)this.Source).DiskSizeGb)
                     return true;
 
                 return false;
@@ -213,10 +186,10 @@ namespace MigAz.Azure.MigrationTarget
         {
             get
             {
-                if (this.SourceDisk == null)
+                if (this.Source == null)
                     return false; // No source disk to compare to, thus false
                 else
-                    return this.Lun != this.SourceDisk.Lun;
+                    return this.Lun != ((IDisk)this.Source).Lun;
             }
         }
 
@@ -231,6 +204,46 @@ namespace MigAz.Azure.MigrationTarget
             this.TargetNameResult = this.TargetName;
         }
 
+        public override async Task RefreshFromSource()
+        {
+            if (this.Source != null)
+            {
+                if (this.Source.GetType() == typeof(Azure.Arm.ClassicDisk))
+                {
+                    Azure.Arm.ClassicDisk armDisk = (Azure.Arm.ClassicDisk)this.Source;
+
+                    if (this.TargetStorage == null)
+                        this.TargetStorage = new ManagedDiskStorage(armDisk);
+
+                    //this.SetTargetName(armDisk.Name, this.TargetSettings);
+                    this.Lun = armDisk.Lun;
+                    this.HostCaching = armDisk.Caching;
+                    this.DiskSizeInGB = armDisk.DiskSizeGb;
+                    this.TargetStorageAccountBlob = armDisk.StorageAccountBlob;
+                    this.SourceStorageAccount = armDisk.SourceStorageAccount;
+                    this.IsEncrypted = armDisk.IsEncrypted;
+                    this.DiskEncryptionKeySourceVaultId = armDisk.DiskEncryptionKeySourceVaultId;
+                    this.DiskEncryptionKeySecretUrl = armDisk.DiskEncryptionKeySecretUrl;
+                    this.KeyEncryptionKeySourceVaultId = armDisk.KeyEncryptionKeySourceVaultId;
+                    this.KeyEncryptionKeyKeyUrl = armDisk.KeyEncryptionKeyKeyUrl;
+                }
+                else if (this.Source.GetType() == typeof(Azure.Arm.ManagedDisk))
+                {
+                    Azure.Arm.ManagedDisk armManagedDisk = (Azure.Arm.ManagedDisk)this.Source;
+
+                    if (this.TargetStorage == null)
+                        this.TargetStorage = new ManagedDiskStorage(armManagedDisk);
+
+                    //this.SetTargetName(armManagedDisk.Name, this.TargetSettings);
+                    this.DiskSizeInGB = armManagedDisk.DiskSizeGb;
+                    this.IsEncrypted = armManagedDisk.IsEncrypted;
+                    this.DiskEncryptionKeySourceVaultId = armManagedDisk.DiskEncryptionKeySourceVaultId;
+                    this.DiskEncryptionKeySecretUrl = armManagedDisk.DiskEncryptionKeySecretUrl;
+                    this.KeyEncryptionKeySourceVaultId = armManagedDisk.KeyEncryptionKeySourceVaultId;
+                    this.KeyEncryptionKeyKeyUrl = armManagedDisk.KeyEncryptionKeyKeyUrl;
+                }
+            }
+        }
     }
 }
 

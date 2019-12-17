@@ -17,22 +17,30 @@ namespace MigAz.Azure.Arm
 
         private Subnet() : base(null, null) { }
 
-        public Subnet(VirtualNetwork virtualNetwork, JToken subnet) : base(virtualNetwork.AzureSubscription, subnet)
+        private Subnet(VirtualNetwork virtualNetwork, JToken subnet) : base(virtualNetwork.AzureSubscription, subnet)
         {
             _VirtualNetwork = virtualNetwork;
             _Subnet = subnet;
         }
 
-        public new async Task InitializeChildrenAsync()
+        public static Task<Subnet> CreateAsync(AzureSubscription azureSubscription, VirtualNetwork virtualNetwork, JToken resourceToken)
+        {
+            var ret = new Subnet(virtualNetwork, resourceToken);
+            return ret.InitializeAsync();
+        }
+
+        private async Task<Subnet> InitializeAsync()
         {
             if (this.NetworkSecurityGroupId != string.Empty)
             {
-                _NetworkSecurityGroup = await this.AzureSubscription.GetAzureARMNetworkSecurityGroup(this.NetworkSecurityGroupId);
+                _NetworkSecurityGroup = (Arm.NetworkSecurityGroup) await this.AzureSubscription.SeekResourceById(this.NetworkSecurityGroupId);
             }
             if (this.RouteTableId != string.Empty)
             {
-                _RouteTable = await this.AzureSubscription.GetAzureARMRouteTable(this.RouteTableId);
+                _RouteTable = (Arm.RouteTable) await this.AzureSubscription.SeekResourceById(this.RouteTableId);
             }
+
+            return this;
         }
 
         public string TargetId
@@ -89,11 +97,6 @@ namespace MigAz.Azure.Arm
         public bool IsGatewaySubnet
         {
             get { return this.Name == ArmConst.GatewaySubnetName; }
-        }
-
-        public override string ToString()
-        {
-            return this.Name;
         }
 
         public static bool operator ==(Subnet lhs, Subnet rhs)

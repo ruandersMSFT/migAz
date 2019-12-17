@@ -14,31 +14,11 @@ namespace MigAz.Azure.Arm
 
     public class NetworkInterface : ArmResource, INetworkInterface
     {
-        private VirtualMachine _VirtualMachine;
-        private List<NetworkInterfaceIpConfiguration> _NetworkInterfaceIpConfigurations = new List<NetworkInterfaceIpConfiguration>();
-
         private NetworkInterface() : base(null, null) { }
 
         public NetworkInterface(AzureSubscription azureSubscription, JToken resourceToken) : base(azureSubscription, resourceToken)
         {
-            foreach (JToken networkInterfaceIpConfigurationToken in ResourceToken["properties"]["ipConfigurations"])
-            {
-                NetworkInterfaceIpConfiguration networkInterfaceIpConfiguration = new NetworkInterfaceIpConfiguration(azureSubscription, networkInterfaceIpConfigurationToken);
-                _NetworkInterfaceIpConfigurations.Add(networkInterfaceIpConfiguration);
-            }
-        }
 
-        internal async override Task InitializeChildrenAsync()
-        {
-            await base.InitializeChildrenAsync();
-
-            foreach (NetworkInterfaceIpConfiguration networkInterfaceIpConfiguration in this.NetworkInterfaceIpConfigurations)
-            {
-                await networkInterfaceIpConfiguration.InitializeChildrenAsync();
-            }
-
-            if (this.NetworkSecurityGroupId != String.Empty)
-                this.NetworkSecurityGroup = await this.AzureSubscription.GetAzureARMNetworkSecurityGroup(this.NetworkSecurityGroupId);
         }
 
         public bool EnableIPForwarding
@@ -47,10 +27,7 @@ namespace MigAz.Azure.Arm
             {
                 try
                 {
-                    if (ResourceToken["properties"]["enableIPForwarding"] == null)
-                        return false;
-
-                    return (bool)ResourceToken["properties"]["enableIPForwarding"];
+                    return (bool)ResourceToken.SelectToken("properties.enableIPForwarding"); 
                 }
                 catch
                 {
@@ -64,10 +41,7 @@ namespace MigAz.Azure.Arm
             {
                 try
                 {
-                    if (ResourceToken["properties"]["enableAcceleratedNetworking"] == null)
-                        return false;
-
-                    return (bool)ResourceToken["properties"]["enableAcceleratedNetworking"];
+                    return (bool)ResourceToken.SelectToken("properties.enableAcceleratedNetworking");
                 }
                 catch
                 {
@@ -76,53 +50,43 @@ namespace MigAz.Azure.Arm
             }
         }
 
-        public Guid ResourceGuid => new Guid((string)ResourceToken["properties"]["resourceGuid"]);
-        public bool IsPrimary => Convert.ToBoolean((string)ResourceToken["properties"]["primary"]);
-        public VirtualMachine VirtualMachine
+        public bool? IsPrimary
         {
-            get { return _VirtualMachine; }
-            set { _VirtualMachine = value; }
+            get
+            {
+                try
+                {
+                    return (bool)ResourceToken.SelectToken("properties.primary");
+                }
+                catch
+                {
+                    return false;
+                }
+            }
         }
 
         public List<NetworkInterfaceIpConfiguration> NetworkInterfaceIpConfigurations
         {
-            get { return _NetworkInterfaceIpConfigurations; }
-        }
-
-        public NetworkInterfaceIpConfiguration PrimaryIpConfiguration
-        {
             get
             {
-                foreach (NetworkInterfaceIpConfiguration ipConfiguration in this._NetworkInterfaceIpConfigurations)
+                List<NetworkInterfaceIpConfiguration> networkInterfaceIpConfigurations = new List<NetworkInterfaceIpConfiguration>();
+
+                foreach (JToken networkInterfaceIpConfigurationToken in ResourceToken["properties"]["ipConfigurations"])
                 {
-                    if (ipConfiguration.IsPrimary)
-                        return ipConfiguration;
+                    NetworkInterfaceIpConfiguration networkInterfaceIpConfiguration = new NetworkInterfaceIpConfiguration(this.AzureSubscription, networkInterfaceIpConfigurationToken);
+                    networkInterfaceIpConfigurations.Add(networkInterfaceIpConfiguration);
                 }
 
-                return null;
+                return networkInterfaceIpConfigurations;
             }
         }
 
-        public override string ToString()
-        {
-            return this.Name;
-        }
-
-        private string NetworkSecurityGroupId
+        public string NetworkSecurityGroupId
         {
             get
             {
-                if (this.ResourceToken["properties"]["networkSecurityGroup"] == null)
-                    return String.Empty;
-
-                return (string)this.ResourceToken["properties"]["networkSecurityGroup"]["id"];
+                return (string)ResourceToken.SelectToken("properties.networkSecurityGroup.id");
             }
-        }
-
-        public NetworkSecurityGroup NetworkSecurityGroup
-        {
-            get;
-            private set;
         }
     }
 }

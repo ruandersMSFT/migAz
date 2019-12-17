@@ -12,49 +12,33 @@ using System.Threading.Tasks;
 
 namespace MigAz.Azure.MigrationTarget
 {
-    public class RouteTable : Core.MigrationTarget
+    public class RouteTable : Core.MigrationTarget, IMigrationRouteTable
     {
-        private IRouteTable _SourceRouteTable;
+        //private IRouteTable _SourceRouteTable;
         private List<Route> _Routes = new List<Route>();
 
         #region Constructors
 
-        private RouteTable() : base(ArmConst.MicrosoftNetwork, ArmConst.RouteTables, null) { }
+        private RouteTable() : base(null, ArmConst.MicrosoftNetwork, ArmConst.RouteTables, null, null) { }
 
-         public RouteTable(IRouteTable source, TargetSettings targetSettings, ILogProvider logProvider) : base(ArmConst.MicrosoftNetwork, ArmConst.RouteTables, logProvider)
+         public RouteTable(AzureSubscription azureSubscription, IRouteTable source, TargetSettings targetSettings, ILogProvider logProvider) : base(azureSubscription, ArmConst.MicrosoftNetwork, ArmConst.RouteTables, targetSettings, logProvider)
         {
-            _SourceRouteTable = source;
+            this.Source = source;
             this.SetTargetName(source.Name, targetSettings);
         }
 
-        public RouteTable(Arm.RouteTable source, TargetSettings targetSettings, ILogProvider logProvider) : base(ArmConst.MicrosoftNetwork, ArmConst.RouteTables, logProvider)
+        public RouteTable(AzureSubscription azureSubscription, Arm.RouteTable source, TargetSettings targetSettings, ILogProvider logProvider) : base(azureSubscription, ArmConst.MicrosoftNetwork, ArmConst.RouteTables, targetSettings, logProvider)
         {
-            _SourceRouteTable = source;
+            this.Source = source;
             this.SetTargetName(source.Name, targetSettings);
 
             foreach (Arm.Route route in source.Routes)
             {
-                _Routes.Add(new Route(route, targetSettings, logProvider));
+                _Routes.Add(new Route(azureSubscription, route, targetSettings, logProvider));
             }
         }
 
         #endregion
-
-        public IRouteTable Source
-        {
-            get { return _SourceRouteTable; }
-        }
-
-        public String SourceName
-        {
-            get
-            {
-                if (_SourceRouteTable == null)
-                    return String.Empty;
-
-                return _SourceRouteTable.Name;
-            }
-        }
 
         public List<Route> Routes
         {
@@ -71,6 +55,11 @@ namespace MigAz.Azure.MigrationTarget
         {
             this.TargetName = targetName.Trim().Replace(" ", String.Empty);
             this.TargetNameResult = this.TargetName + targetSettings.AvailabilitySetSuffix;
+        }
+
+        public override async Task RefreshFromSource()
+        {
+           // throw new NotImplementedException();
         }
     }
 }

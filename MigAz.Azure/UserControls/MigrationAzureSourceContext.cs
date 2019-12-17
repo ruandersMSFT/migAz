@@ -17,6 +17,7 @@ using MigAz.Azure.Arm;
 using MigAz.Azure.Forms;
 using MigAz.Azure.Core;
 using Microsoft.IdentityModel.Clients.ActiveDirectory;
+using Newtonsoft.Json.Linq;
 
 namespace MigAz.Azure.UserControls
 {
@@ -286,7 +287,7 @@ namespace MigAz.Azure.UserControls
 
                         foreach (Azure.MigrationTarget.NetworkSecurityGroup targetNetworkSecurityGroup in _AzureContextSource.AzureSubscription.AsmTargetNetworkSecurityGroups)
                         {
-                            Azure.Asm.NetworkSecurityGroup asmNetworkSecurityGroup = (Azure.Asm.NetworkSecurityGroup)targetNetworkSecurityGroup.SourceNetworkSecurityGroup;
+                            Azure.Asm.NetworkSecurityGroup asmNetworkSecurityGroup = (Azure.Asm.NetworkSecurityGroup)targetNetworkSecurityGroup.Source;
                             TreeNode parentNode = GetDataCenterTreeViewNode(subscriptionNodeASM, asmNetworkSecurityGroup.Location, "Network Security Groups");
 
                             TreeNode tnNetworkSecurityGroup = new TreeNode(targetNetworkSecurityGroup.SourceName);
@@ -298,7 +299,7 @@ namespace MigAz.Azure.UserControls
 
                         foreach (Azure.MigrationTarget.VirtualNetwork targetVirtualNetwork in _AzureContextSource.AzureSubscription.AsmTargetVirtualNetworks)
                         {
-                            Azure.Asm.VirtualNetwork asmVirtualNetwork = (Azure.Asm.VirtualNetwork)targetVirtualNetwork.SourceVirtualNetwork;
+                            Azure.Asm.VirtualNetwork asmVirtualNetwork = (Azure.Asm.VirtualNetwork)targetVirtualNetwork.Source;
                             TreeNode parentNode = GetDataCenterTreeViewNode(subscriptionNodeASM, asmVirtualNetwork.Location, "Virtual Networks");
 
                             TreeNode tnVirtualNetwork = new TreeNode(targetVirtualNetwork.SourceName);
@@ -311,7 +312,7 @@ namespace MigAz.Azure.UserControls
 
                         foreach (Azure.MigrationTarget.StorageAccount targetStorageAccount in _AzureContextSource.AzureSubscription.AsmTargetStorageAccounts)
                         {
-                            TreeNode parentNode = GetDataCenterTreeViewNode(subscriptionNodeASM, targetStorageAccount.SourceAccount.PrimaryLocation, "Storage Accounts");
+                            TreeNode parentNode = GetDataCenterTreeViewNode(subscriptionNodeASM, ((IStorageAccount)targetStorageAccount.Source).PrimaryLocation, "Storage Accounts");
 
                             TreeNode tnStorageAccount = new TreeNode(targetStorageAccount.SourceName);
                             tnStorageAccount.Name = targetStorageAccount.SourceName;
@@ -494,20 +495,21 @@ namespace MigAz.Azure.UserControls
                     {
                         if (targetSubnet.NetworkSecurityGroup != null)
                         {
-                            if (targetSubnet.NetworkSecurityGroup.SourceNetworkSecurityGroup != null)
-                            {
-                                if (targetSubnet.NetworkSecurityGroup.SourceNetworkSecurityGroup.GetType() == typeof(Azure.Asm.NetworkSecurityGroup))
-                                {
-                                    foreach (TreeNode treeNode in selectedNode.TreeView.Nodes.Find(targetSubnet.NetworkSecurityGroup.SourceName, true))
-                                    {
-                                        if ((treeNode.Tag != null) && (treeNode.Tag.GetType() == typeof(Azure.MigrationTarget.NetworkSecurityGroup)))
-                                        {
-                                            if (!treeNode.Checked)
-                                                treeNode.Checked = true;
-                                        }
-                                    }
-                                }
-                            }
+                            // todo now russell
+                            //if (targetSubnet.NetworkSecurityGroup.Source != null)
+                            //{
+                            //    if (targetSubnet.NetworkSecurityGroup.Source.GetType() == typeof(Azure.Asm.NetworkSecurityGroup))
+                            //    {
+                            //        foreach (TreeNode treeNode in selectedNode.TreeView.Nodes.Find(targetSubnet.NetworkSecurityGroup.SourceName, true))
+                            //        {
+                            //            if ((treeNode.Tag != null) && (treeNode.Tag.GetType() == typeof(Azure.MigrationTarget.NetworkSecurityGroup)))
+                            //            {
+                            //                if (!treeNode.Checked)
+                            //                    treeNode.Checked = true;
+                            //            }
+                            //        }
+                            //    }
+                            //}
                         }
                     }
                 }
@@ -772,26 +774,123 @@ namespace MigAz.Azure.UserControls
         private async Task treeViewSourceResourceManager1_AfterNodeChecked(Core.MigrationTarget sender)
         {
             await AfterNodeChecked?.Invoke(sender);
+
+            if (_StatusProvider != null)
+                _StatusProvider.UpdateStatus("Ready");
         }
 
         private async Task treeViewSourceResourceManager1_AfterNodeUnchecked(Core.MigrationTarget sender)
         {
             await AfterNodeUnchecked?.Invoke(sender);
+
+            if (_StatusProvider != null)
+                _StatusProvider.UpdateStatus("Ready");
         }
 
         private async Task treeViewSourceResourceManager1_AfterNodeChanged(Core.MigrationTarget sender)
         {
             await AfterNodeChanged?.Invoke(sender);
+
+            if (_StatusProvider != null)
+                _StatusProvider.UpdateStatus("Ready");
         }
 
         private void treeViewSourceResourceManager1_ClearContext()
         {
             ClearContext?.Invoke();
+
+            if (_StatusProvider != null)
+                _StatusProvider.UpdateStatus("Ready");
         }
 
         private void treeViewSourceResourceManager1_AfterContextChanged(UserControl sender)
         {
             AfterContextChanged?.Invoke(sender);
+
+            if (_StatusProvider != null)
+                _StatusProvider.UpdateStatus("Ready");
+        }
+
+        private async void treeViewSourceResourceManager1_BeforeExpand(object sender, TreeViewCancelEventArgs e)
+        {
+            if (e.Node.Tag != null && e.Node.Tag.GetType() == typeof(MigrationTarget.ResourceGroup) && e.Node.Nodes.Count == 1 && e.Node.Nodes[0].Text == "Loading")
+            {
+                e.Node.Nodes.Clear();
+
+                MigrationTarget.ResourceGroup targetResourceGroup = (MigrationTarget.ResourceGroup)e.Node.Tag;
+                if (targetResourceGroup.Source != null)
+                {
+                    JObject resourceGroupResourcesJson = await _AzureContextSource.AzureSubscription.GetAzureARMResources("*", (Arm.ResourceGroup)targetResourceGroup.Source, null);
+
+                    if (resourceGroupResourcesJson != null)
+                    {
+                        var armResources = from managedDisk in resourceGroupResourcesJson["value"]
+                                           select managedDisk;
+
+                        List<Task> resourceGroupTasks = new List<Task>();
+
+                        foreach (var armResource in armResources)
+                        {
+                            switch (armResource["type"].ToString())
+                            {
+                                case "Microsoft.Compute/availabilitySets":
+                                case "Microsoft.Compute/virtualMachines":
+                                case "Microsoft.Compute/disks":
+                                case "Microsoft.Storage/storageAccounts":
+                                case "Microsoft.Network/applicationSecurityGroups":
+                                case "Microsoft.Network/networkInterfaces":
+                                case "Microsoft.Network/virtualNetworks":
+                                case "Microsoft.Network/routeTables":
+                                case "Microsoft.Network/networkSecurityGroups":
+                                case "Microsoft.Network/publicIPAddresses":
+                                case "Microsoft.Network/virtualNetworkGateways":
+                                case "Microsoft.Network/localNetworkGateways":
+                                case "Microsoft.Network/connections":
+                                case "Microsoft.Network/loadBalancers":
+                                    resourceGroupTasks.Add(LoadResourceGroupTreeNode(armResource, e.Node));
+                                    break;
+
+                                default:
+                                    break;
+                            }
+
+                            
+                        }
+
+                        await Task.WhenAll(resourceGroupTasks);
+                    }
+                }
+
+                e.Node.Expand();
+            }
+
+            if (_StatusProvider != null)
+                _StatusProvider.UpdateStatus("Ready");
+        }
+
+        public async Task LoadResourceGroupTreeNode(JToken armResource, TreeNode sourceTreeNode)
+        {
+            Core.MigrationTarget migrationTarget = null;
+
+            migrationTarget = await SeekMigrationTarget(armResource);
+
+            if (migrationTarget != null)
+            {
+                TreeNode treeNode = new TreeNode();
+                treeNode.Text = migrationTarget.SourceName;
+                treeNode.Name = migrationTarget.SourceName;
+                treeNode.Tag = migrationTarget;
+                treeNode.ImageKey = migrationTarget.ImageKey;
+                treeNode.SelectedImageKey = migrationTarget.ImageKey;
+
+                sourceTreeNode.Nodes.Add(treeNode);
+            }
+        }
+
+        private async Task<Core.MigrationTarget> SeekMigrationTarget(JToken armResourceToken)
+        {
+            Arm.ArmResource armResource = await this.AzureContext.AzureSubscription.SeekResourceById(armResourceToken);
+            return this.AzureContext.AzureSubscription.SeekMigrationTargetBySource(armResource);
         }
     }
 }

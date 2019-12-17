@@ -237,10 +237,6 @@ namespace MigAz.Azure.Arm
             get { return this.Caching; }
         }
 
-        public override string ToString()
-        {
-            return this.Name;
-        }
     }
 }
 

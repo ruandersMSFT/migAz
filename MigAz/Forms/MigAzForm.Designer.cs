@@ -119,6 +119,7 @@ namespace MigAz.Forms
             this.imageList1.Images.SetKeyName(12, "VirtualNetworkGateway");
             this.imageList1.Images.SetKeyName(13, "Connection");
             this.imageList1.Images.SetKeyName(14, "LocalNetworkGateway");
+            this.imageList1.Images.SetKeyName(15, "ApplicationSecurityGroup");
             // 
             // statusStrip1
             // 

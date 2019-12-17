@@ -14,30 +14,22 @@ namespace MigAz.Azure.MigrationTarget
 {
     public class PublicIp : Core.MigrationTarget, IMigrationPublicIp
     {
-        private String _SourceName = String.Empty;
         private String _DomainNameLabel = String.Empty;
         private IPAllocationMethodEnum _IPAllocationMethod = IPAllocationMethodEnum.Dynamic;
-        private Arm.PublicIP _Source;
 
         #region Constructors
 
-        public PublicIp() : base(ArmConst.MicrosoftNetwork, ArmConst.PublicIPAddresses, null) { }
+        public PublicIp() : base(null, ArmConst.MicrosoftNetwork, ArmConst.PublicIPAddresses, null, null) { }
 
-        public PublicIp(string targetName, TargetSettings targetSettings, ILogProvider logProvider) : base(ArmConst.MicrosoftNetwork, ArmConst.PublicIPAddresses, logProvider)
+        public PublicIp(AzureSubscription azureSubscription, string targetName, TargetSettings targetSettings, ILogProvider logProvider) : base(azureSubscription, ArmConst.MicrosoftNetwork, ArmConst.PublicIPAddresses, targetSettings, logProvider)
         {
             this.SetTargetName(targetName, targetSettings);
         }
 
-        public PublicIp(Arm.PublicIP armPublicIP, TargetSettings targetSettings, ILogProvider logProvider) : base(ArmConst.MicrosoftNetwork, ArmConst.PublicIPAddresses, logProvider)
+        public PublicIp(AzureSubscription azureSubscription, Arm.PublicIP armPublicIP, TargetSettings targetSettings, ILogProvider logProvider) : base(azureSubscription, ArmConst.MicrosoftNetwork, ArmConst.PublicIPAddresses, targetSettings, logProvider)
         {
-            this._Source = armPublicIP;
-            this.SourceName = armPublicIP.Name;
+            this.Source = armPublicIP;
             this.SetTargetName(armPublicIP.Name, targetSettings);
-
-            this.DomainNameLabel = armPublicIP.DomainNameLabel;
-
-            if (String.Compare(armPublicIP.PublicIPAllocationMethod, "Static", true) == 0)
-                _IPAllocationMethod = IPAllocationMethodEnum.Static;
         }
 
         #endregion
@@ -45,7 +37,13 @@ namespace MigAz.Azure.MigrationTarget
         public String DomainNameLabel
         {
             get { return _DomainNameLabel; }
-            set { _DomainNameLabel = value.ToLower(); }
+            set
+            {
+                if (value == null)
+                    _DomainNameLabel = null;
+                else
+                    _DomainNameLabel = value.ToLower();
+            }
         }
 
         public IPAllocationMethodEnum IPAllocationMethod
@@ -54,22 +52,25 @@ namespace MigAz.Azure.MigrationTarget
             set { _IPAllocationMethod = value; }
         }
 
-        public Arm.PublicIP Source
-        {
-            get { return _Source; }
-        }
-
-        public String SourceName
-        {
-            get { return _SourceName; }
-            set { _SourceName = value; }
-        }
-
         public override string ImageKey { get { return "PublicIp"; } }
 
         public override string FriendlyObjectName { get { return "Public IP"; } }
 
+        public override async Task RefreshFromSource()
+        {
+            if (this.Source != null)
+            {
+                if (this.Source.GetType() == typeof(Arm.PublicIP))
+                {
+                    Arm.PublicIP armPublicIP = (Arm.PublicIP)this.Source;
 
+                    this.DomainNameLabel = armPublicIP.DomainNameLabel;
+
+                    if (String.Compare(armPublicIP.PublicIPAllocationMethod, "Static", true) == 0)
+                        _IPAllocationMethod = IPAllocationMethodEnum.Static;
+                }
+            }
+        }
 
         public override void SetTargetName(string targetName, TargetSettings targetSettings)
         {

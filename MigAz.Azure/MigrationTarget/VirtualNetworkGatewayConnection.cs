@@ -16,7 +16,7 @@ namespace MigAz.Azure.MigrationTarget
 
     public class VirtualNetworkGatewayConnection : Core.MigrationTarget
     {
-        private IConnection _SourceConnection;
+        //private IConnection _SourceConnection;
         public int _RoutingWeight = 10;
         private String _SharedKey = String.Empty;
         private VirtualNetworkGatewayConnectionType _ConnectionType = VirtualNetworkGatewayConnectionType.IPSec;
@@ -25,28 +25,15 @@ namespace MigAz.Azure.MigrationTarget
 
         #region Constructors
 
-        private VirtualNetworkGatewayConnection() : base(String.Empty, String.Empty, null) { }
+        private VirtualNetworkGatewayConnection() : base(null, ArmConst.MicrosoftNetwork, ArmConst.Connections, null, null) { }
 
-        public VirtualNetworkGatewayConnection(IConnection connection, TargetSettings targetSettings, ILogProvider logProvider) : base(String.Empty, String.Empty, logProvider)
+        public VirtualNetworkGatewayConnection(AzureSubscription azureSubscription, IConnection connection, TargetSettings targetSettings, ILogProvider logProvider) : base(azureSubscription, ArmConst.MicrosoftNetwork, ArmConst.Connections, targetSettings, logProvider)
         {
-            this._SourceConnection = connection;
+            this.Source = connection;
             this.SetTargetName(this.SourceName, targetSettings);
         }
 
         #endregion
-
-        public IConnection SourceConnection { get { return _SourceConnection; } }
-
-        public String SourceName
-        {
-            get
-            {
-                if (this.SourceConnection == null)
-                    return String.Empty;
-                else
-                    return this.SourceConnection.ToString();
-            }
-        }
 
         public String SharedKey
         {
@@ -87,6 +74,11 @@ namespace MigAz.Azure.MigrationTarget
         {
             this.TargetName = targetName.Trim().Replace(" ", String.Empty);
             this.TargetNameResult = this.TargetName;
+        }
+
+        public override async Task RefreshFromSource()
+        {
+            throw new NotImplementedException();
         }
     }
 }

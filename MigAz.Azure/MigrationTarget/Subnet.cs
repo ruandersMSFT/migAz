@@ -14,64 +14,34 @@ namespace MigAz.Azure.MigrationTarget
 {
     public class Subnet : Core.MigrationTarget, IMigrationSubnet
     {
-        private ISubnet _SourceSubnet;
+        //private ISubnet _SourceSubnet;
         private MigrationTarget.VirtualNetwork _ParentVirtualNetwork;
 
         #region Constructors
 
-        private Subnet() : base(String.Empty, String.Empty, null) { }
+        private Subnet() : base(null, String.Empty, String.Empty, null, null) { }
 
-        public Subnet(MigrationTarget.VirtualNetwork parentVirtualNetwork, TargetSettings targetSettings, ILogProvider logProvider) : base(String.Empty, String.Empty, logProvider)
+        public Subnet(AzureSubscription azureSubscription, MigrationTarget.VirtualNetwork parentVirtualNetwork, TargetSettings targetSettings, ILogProvider logProvider) : base(azureSubscription, String.Empty, String.Empty, targetSettings, logProvider)
         {
             _ParentVirtualNetwork = parentVirtualNetwork;
             this.SetTargetName("NewSubnet", targetSettings);
         }
 
-        public Subnet(MigrationTarget.VirtualNetwork parentVirtualNetwork, ISubnet source, List<NetworkSecurityGroup> networkSecurityGroups, List<RouteTable> routeTables, TargetSettings targetSettings, ILogProvider logProvider) : base(String.Empty, String.Empty, logProvider)
-        {
-            _ParentVirtualNetwork = parentVirtualNetwork;
-            _SourceSubnet = source;
 
-            if (source.GetType() == typeof(Asm.Subnet))
-            {
-                Asm.Subnet asmSubnet = (Asm.Subnet)source;
-
-                if (asmSubnet.NetworkSecurityGroup != null)
-                {
-                    this.NetworkSecurityGroup = SeekNetworkSecurityGroup(networkSecurityGroups, asmSubnet.NetworkSecurityGroup.ToString());
-                }
-
-                if (asmSubnet.RouteTable != null)
-                {
-                    this.RouteTable = SeekRouteTable(routeTables, asmSubnet.RouteTable.ToString());
-                }
-            }
-            else if (source.GetType() == typeof(Arm.Subnet))
-            {
-                Arm.Subnet armSubnet = (Arm.Subnet)source;
-
-                if (armSubnet.NetworkSecurityGroup != null)
-                {
-                    this.NetworkSecurityGroup = SeekNetworkSecurityGroup(networkSecurityGroups, armSubnet.NetworkSecurityGroup.ToString());
-                }
-
-                if (armSubnet.RouteTable != null)
-                {
-                    this.RouteTable = SeekRouteTable(routeTables, armSubnet.RouteTable.ToString());
-                }
-
-            }
-
-            this.AddressPrefix = source.AddressPrefix;
-            this.SetTargetName(source.Name, targetSettings);
-        }
-
-        public Subnet(VirtualNetwork parentVirtualNetwork, ISubnet sourceSubnet, TargetSettings targetSettings, ILogProvider logProvider) : base(String.Empty, String.Empty, logProvider)
+        public Subnet(AzureSubscription azureSubscription, VirtualNetwork parentVirtualNetwork, ISubnet sourceSubnet, TargetSettings targetSettings, ILogProvider logProvider) : base(azureSubscription, String.Empty, String.Empty, targetSettings, logProvider)
         {
             this._ParentVirtualNetwork = parentVirtualNetwork;
-            this._SourceSubnet = sourceSubnet;
+            this.Source = sourceSubnet;
             this.SetTargetName(sourceSubnet.Name, targetSettings);
             this.AddressPrefix = sourceSubnet.AddressPrefix;
+
+            if (sourceSubnet.GetType() == typeof(Arm.Subnet))
+            {
+                Arm.Subnet armSubnet = (Arm.Subnet)sourceSubnet;
+
+                this.NetworkSecurityGroup = armSubnet.NetworkSecurityGroup;
+                this.RouteTable = armSubnet.RouteTable;
+            }
         }
 
         #endregion
@@ -105,22 +75,6 @@ namespace MigAz.Azure.MigrationTarget
 
         public String AddressPrefix { get; set; }
 
-        public ISubnet SourceSubnet
-        {
-            get { return _SourceSubnet; }
-        }
-
-        public String SourceName
-        {
-            get
-            {
-                if (this.SourceSubnet == null)
-                    return String.Empty;
-                else
-                    return this.SourceSubnet.ToString();
-            }
-        }
-
         public MigrationTarget.VirtualNetwork ParentVirtualNetwork
         {
             get { return _ParentVirtualNetwork; }
@@ -131,8 +85,8 @@ namespace MigAz.Azure.MigrationTarget
             get { return "[concat(" + ArmConst.ResourceGroupId + ", '" + ArmConst.ProviderVirtualNetwork + this.ParentVirtualNetwork.ToString() + "/subnets/" + this.TargetName + "')]"; }
         }
 
-        public RouteTable RouteTable { get; set;  }
-        public NetworkSecurityGroup NetworkSecurityGroup { get; set; }
+        public IMigrationRouteTable RouteTable { get; set;  }
+        public IMigrationNetworkSecurityGroup NetworkSecurityGroup { get; set; }
 
         public bool IsGatewaySubnet
         {
@@ -147,6 +101,41 @@ namespace MigAz.Azure.MigrationTarget
         {
             this.TargetName = targetName.Trim().Replace(" ", String.Empty);
             this.TargetNameResult = this.TargetName;
+        }
+
+        public override async Task RefreshFromSource()
+        {
+            //    if (source.GetType() == typeof(Asm.Subnet))
+            //    {
+            //        Asm.Subnet asmSubnet = (Asm.Subnet)source;
+
+            //        if (asmSubnet.NetworkSecurityGroup != null)
+            //        {
+            //            this.NetworkSecurityGroup = SeekNetworkSecurityGroup(networkSecurityGroups, asmSubnet.NetworkSecurityGroup.ToString());
+            //        }
+
+            //        if (asmSubnet.RouteTable != null)
+            //        {
+            //            this.RouteTable = SeekRouteTable(routeTables, asmSubnet.RouteTable.ToString());
+            //        }
+            //    }
+            //    else if (source.GetType() == typeof(Arm.Subnet))
+            //    {
+            //        Arm.Subnet armSubnet = (Arm.Subnet)source;
+
+            //        if (armSubnet.NetworkSecurityGroup != null)
+            //        {
+            //            this.NetworkSecurityGroup = SeekNetworkSecurityGroup(networkSecurityGroups, armSubnet.NetworkSecurityGroup.ToString());
+            //        }
+
+            //        if (armSubnet.RouteTable != null)
+            //        {
+            //            this.RouteTable = SeekRouteTable(routeTables, armSubnet.RouteTable.ToString());
+            //        }
+
+            //    }
+
+            //    this.AddressPrefix = source.AddressPrefix;
         }
     }
 }

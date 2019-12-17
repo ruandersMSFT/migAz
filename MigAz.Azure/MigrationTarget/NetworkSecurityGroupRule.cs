@@ -5,6 +5,8 @@ using MigAz.Azure.Core;
 using MigAz.Azure.Core.ArmTemplate;
 using MigAz.Azure.Core.Interface;
 using System;
+using System.Collections.Generic;
+using System.Threading.Tasks;
 
 namespace MigAz.Azure.MigrationTarget
 {
@@ -14,7 +16,7 @@ namespace MigAz.Azure.MigrationTarget
 
         #region Constructors
 
-        public NetworkSecurityGroupRule(Asm.NetworkSecurityGroupRule asmRule, TargetSettings targetSettings, ILogProvider logProvider) : base(String.Empty, String.Empty, logProvider)
+        public NetworkSecurityGroupRule(AzureSubscription azureSubscription, Asm.NetworkSecurityGroupRule asmRule, TargetSettings targetSettings, ILogProvider logProvider) : base(azureSubscription, String.Empty, String.Empty, targetSettings, logProvider)
         {
             this.SetTargetName(asmRule.Name, targetSettings);
             this.Access = asmRule.Action;
@@ -28,7 +30,7 @@ namespace MigAz.Azure.MigrationTarget
             this.SourcePortRange = asmRule.SourcePortRange;
         }
 
-        public NetworkSecurityGroupRule(Arm.NetworkSecurityGroupRule armRule, TargetSettings targetSettings, ILogProvider logProvider) : base(String.Empty, String.Empty, logProvider)
+        public NetworkSecurityGroupRule(AzureSubscription azureSubscription, Arm.NetworkSecurityGroupRule armRule, TargetSettings targetSettings, ILogProvider logProvider) : base(azureSubscription, String.Empty, String.Empty, targetSettings, logProvider)
         {
             this.SetTargetName(armRule.Name, targetSettings);
             this.Access = armRule.Access;
@@ -63,12 +65,37 @@ namespace MigAz.Azure.MigrationTarget
             get; set;
         }
 
+        public List<string> SourceAddressPrefixes
+        {
+            get; set;
+        }
+
+        public List<ApplicationSecurityGroup> SourceApplicationSecurityGroups
+        {
+            get; set;
+        }
+
         public string DestinationAddressPrefix
         {
             get; set;
         }
 
+        public List<string> DestinationAddressPrefixes
+        {
+            get; set;
+        }
+
+        public List<ApplicationSecurityGroup> DestinationApplicationSecurityGroups
+        {
+            get; set;
+        }
+
         public string SourcePortRange
+        {
+            get; set;
+        }
+
+        public List<string> SourcePortRanges
         {
             get; set;
         }
@@ -89,18 +116,14 @@ namespace MigAz.Azure.MigrationTarget
             set { _IsSystemRule = value; }
         }
 
-        public String SourceName
-        {
-            get
-            {
-                return String.Empty;
-            }
-        }
-
         public override string ImageKey { get { return "NetworkSecurityGroupRule"; } }
 
         public override string FriendlyObjectName { get { return "Network Security Group Rule"; } }
 
+        public override async Task RefreshFromSource()
+        {
+            //throw new NotImplementedException();
+        }
 
         public override void SetTargetName(string targetName, TargetSettings targetSettings)
         {

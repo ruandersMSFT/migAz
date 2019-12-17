@@ -39,6 +39,7 @@ namespace MigAz.Azure.Core.ArmTemplate
         public const string ProviderLoadBalancers = "/providers/" + MicrosoftNetwork + "/" + LoadBalancers + "/";
         public const string PublicIPAddresses = "publicIPAddresses";
         public const string ProviderPublicIpAddress = "/providers/" + MicrosoftNetwork + "/" + PublicIPAddresses + "/";
+        public const string ApplicationSecurityGroups = "applicationSecurityGroups";
         public const string NetworkSecurityGroups = "networkSecurityGroups";
         public const string ProviderNetworkSecurityGroups = "/providers/" + MicrosoftNetwork + "/" + NetworkSecurityGroups + "/";
         public const string RouteTables = "routeTables";

@@ -15,7 +15,7 @@ namespace MigAz.Azure.MigrationTarget
     
     public class VirtualNetworkGateway : Core.MigrationTarget, IMigrationVirtualNetworkGateway
     {
-        private IVirtualNetworkGateway _SourceVirtualNetworkGateway;
+        //private IVirtualNetworkGateway _SourceVirtualNetworkGateway;
         private List<Subnet> _TargetSubnets = new List<Subnet>();
         private VirtualNetworkGatewayType _GatewayType = VirtualNetworkGatewayType.Vpn;
         private bool _EnableBgp = false;
@@ -27,141 +27,91 @@ namespace MigAz.Azure.MigrationTarget
 
         #region Constructors
 
-        private VirtualNetworkGateway() : base(ArmConst.MicrosoftNetwork, ArmConst.VirtualNetworkGateways, null) { }
+        private VirtualNetworkGateway() : base(null, ArmConst.MicrosoftNetwork, ArmConst.VirtualNetworkGateways, null, null) { }
 
-        public VirtualNetworkGateway(IVirtualNetworkGateway virtualNetworkGateway, TargetSettings targetSettings, ILogProvider logProvider) : base(ArmConst.MicrosoftNetwork, ArmConst.VirtualNetworkGateways, logProvider)
+        public VirtualNetworkGateway(AzureSubscription azureSubscription, IVirtualNetworkGateway virtualNetworkGateway, TargetSettings targetSettings, ILogProvider logProvider) : base(azureSubscription, ArmConst.MicrosoftNetwork, ArmConst.VirtualNetworkGateways, targetSettings, logProvider)
         {
-            this._SourceVirtualNetworkGateway = virtualNetworkGateway;
+            this.Source = virtualNetworkGateway;
             this.SetTargetName(this.SourceName, targetSettings);
         }
 
-        public VirtualNetworkGateway(Arm.VirtualNetworkGateway virtualNetworkGateway, TargetSettings targetSettings, ILogProvider logProvider) : base(ArmConst.MicrosoftNetwork, ArmConst.VirtualNetworkGateways, logProvider)
+        public VirtualNetworkGateway(AzureSubscription azureSubscription, Arm.VirtualNetworkGateway virtualNetworkGateway, TargetSettings targetSettings, ILogProvider logProvider) : base(azureSubscription, ArmConst.MicrosoftNetwork, ArmConst.VirtualNetworkGateways, targetSettings, logProvider)
         {
-            this._SourceVirtualNetworkGateway = virtualNetworkGateway;
+            this.Source = virtualNetworkGateway;
             this.SetTargetName(this.SourceName, targetSettings);
-            this.EnableBgp = virtualNetworkGateway.EnableBgp;
-            this.ActiveActive = virtualNetworkGateway.ActiveActive;
 
-            try
+            if (virtualNetworkGateway.EnableBgp.HasValue)
+                this.EnableBgp = virtualNetworkGateway.EnableBgp.Value;
+
+            if (virtualNetworkGateway.ActiveActive.HasValue)
+                this.ActiveActive = virtualNetworkGateway.ActiveActive.Value;
+
+            switch (virtualNetworkGateway.GatewayType)
             {
-                switch (virtualNetworkGateway.GatewayType)
-                {
-                    case "ExpressRoute":
-                        this.GatewayType = VirtualNetworkGatewayType.ExpressRoute;
-                        break;
-                    case "Vpn":
-                    default:
-                        this.GatewayType = VirtualNetworkGatewayType.Vpn;
-                        break;
-                }
-            }
-            catch (Exception exc)
-            {
-                this.LogProvider.WriteLog("VirtualNetworkGateway Constructor (GatewayType)", exc.Message);
+                case "ExpressRoute":
+                    this.GatewayType = VirtualNetworkGatewayType.ExpressRoute;
+                    break;
+                case "Vpn":
+                default:
+                    this.GatewayType = VirtualNetworkGatewayType.Vpn;
+                    break;
             }
 
-            try
+            switch (virtualNetworkGateway.VpnType)
             {
-                switch (virtualNetworkGateway.VpnType)
-                {
-                    case "PolicyBased":
-                        this.VpnType = VirtualNetworkGatewayVpnType.PolicyBased;
-                        break;
-                    case "RouteBased":
-                    default:
-                        this.VpnType = VirtualNetworkGatewayVpnType.RouteBased;
-                        break;
-                }
-            }
-            catch (Exception exc)
-            {
-                this.LogProvider.WriteLog("VirtualNetworkGateway Constructor (VpnType)", exc.Message);
+                case "PolicyBased":
+                    this.VpnType = VirtualNetworkGatewayVpnType.PolicyBased;
+                    break;
+                case "RouteBased":
+                default:
+                    this.VpnType = VirtualNetworkGatewayVpnType.RouteBased;
+                    break;
             }
 
-            try
+            switch (virtualNetworkGateway.SkuName)
             {
-                switch (virtualNetworkGateway.SkuName)
-                {
-                    case "VpnGw1":
-                        this.SkuName = VirtualNetworkGatewaySkuType.VpnGw1;
-                        break;
-                    case "VpnGw2":
-                        this.SkuName = VirtualNetworkGatewaySkuType.VpnGw2;
-                        break;
-                    case "VpnGw3":
-                        this.SkuName = VirtualNetworkGatewaySkuType.VpnGw3;
-                        break;
-                    case "Basic":
-                    default:
-                        this.SkuName = VirtualNetworkGatewaySkuType.Basic;
-                        break;
-                }
-            }
-            catch (Exception exc)
-            {
-                this.LogProvider.WriteLog("VirtualNetworkGateway Constructor (SkuName)", exc.Message);
+                case "VpnGw1":
+                    this.SkuName = VirtualNetworkGatewaySkuType.VpnGw1;
+                    break;
+                case "VpnGw2":
+                    this.SkuName = VirtualNetworkGatewaySkuType.VpnGw2;
+                    break;
+                case "VpnGw3":
+                    this.SkuName = VirtualNetworkGatewaySkuType.VpnGw3;
+                    break;
+                case "Basic":
+                default:
+                    this.SkuName = VirtualNetworkGatewaySkuType.Basic;
+                    break;
             }
 
-            try
+            switch (virtualNetworkGateway.SkuName)
             {
-                switch (virtualNetworkGateway.SkuName)
-                {
-                    case "VpnGw1":
-                        this.SkuTier = VirtualNetworkGatewaySkuType.VpnGw1;
-                        break;
-                    case "VpnGw2":
-                        this.SkuTier = VirtualNetworkGatewaySkuType.VpnGw2;
-                        break;
-                    case "VpnGw3":
-                        this.SkuTier = VirtualNetworkGatewaySkuType.VpnGw3;
-                        break;
-                    case "Basic":
-                    default:
-                        this.SkuTier = VirtualNetworkGatewaySkuType.Basic;
-                        break;
-                }
-            }
-            catch (Exception exc)
-            {
-                this.LogProvider.WriteLog("VirtualNetworkGateway Constructor (SkuTier)", exc.Message);
+                case "VpnGw1":
+                    this.SkuTier = VirtualNetworkGatewaySkuType.VpnGw1;
+                    break;
+                case "VpnGw2":
+                    this.SkuTier = VirtualNetworkGatewaySkuType.VpnGw2;
+                    break;
+                case "VpnGw3":
+                    this.SkuTier = VirtualNetworkGatewaySkuType.VpnGw3;
+                    break;
+                case "Basic":
+                default:
+                    this.SkuTier = VirtualNetworkGatewaySkuType.Basic;
+                    break;
             }
 
-            try
-            {
-                this.SkuCapacity = virtualNetworkGateway.SkuCapacity;
-            }
-            catch (Exception exc)
-            {
-                this.LogProvider.WriteLog("VirtualNetworkGateway Constructor (SkuCapacity)", exc.Message);
-            }
+            if (virtualNetworkGateway.SkuCapacity.HasValue)
+                this.SkuCapacity = virtualNetworkGateway.SkuCapacity.Value;
 
-            try
+            foreach (IpConfiguration gatewayIpConfiguration in virtualNetworkGateway.IpConfigurations)
             {
-                foreach (IpConfiguration gatewayIpConfiguration in virtualNetworkGateway.IpConfigurations)
-                {
-                    // todo, we aren't doing anything here yet
-                }
-            }
-            catch (Exception exc)
-            {
-                this.LogProvider.WriteLog("VirtualNetworkGateway Constructor (IpConfigurations)", exc.Message);
+
             }
         }
 
         #endregion
-
-        public IVirtualNetworkGateway SourceVirtualNetworkGateway { get { return _SourceVirtualNetworkGateway; } }
-
-        public String SourceName
-        {
-            get
-            {
-                if (this.SourceVirtualNetworkGateway == null)
-                    return String.Empty;
-                else
-                    return this.SourceVirtualNetworkGateway.ToString();
-            }
-        }
 
         public VirtualNetworkGatewaySkuType SkuName
         {
@@ -213,6 +163,10 @@ namespace MigAz.Azure.MigrationTarget
             this.TargetNameResult = this.TargetName;
         }
 
+        public override async Task RefreshFromSource()
+        {
+            throw new NotImplementedException();
+        }
     }
 }
 

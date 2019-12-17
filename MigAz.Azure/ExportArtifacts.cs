@@ -24,6 +24,7 @@ namespace MigAz.Azure
             VirtualNetworkGateways = new List<VirtualNetworkGateway>();
             VirtualNetworkGatewayConnections = new List<VirtualNetworkGatewayConnection>();
             LocalNetworkGateways = new List<LocalNetworkGateway>();
+            ApplicationSecurityGroups = new List<ApplicationSecurityGroup>();
             NetworkSecurityGroups = new List<NetworkSecurityGroup>();
             RouteTables = new List<RouteTable>();
             StorageAccounts = new List<StorageAccount>();
@@ -44,6 +45,7 @@ namespace MigAz.Azure
         public List<VirtualNetworkGateway> VirtualNetworkGateways { get; }
         public List<VirtualNetworkGatewayConnection> VirtualNetworkGatewayConnections { get; }
         public List<LocalNetworkGateway> LocalNetworkGateways { get; }
+        public List<ApplicationSecurityGroup> ApplicationSecurityGroups { get; }
         public List<NetworkSecurityGroup> NetworkSecurityGroups { get; }
         public List<StorageAccount> StorageAccounts { get; }
         public List<VirtualNetwork> VirtualNetworks { get; }
@@ -72,6 +74,17 @@ namespace MigAz.Azure
             {
                 if (networkSecurityGroup.ToString() == sourceName)
                     return networkSecurityGroup;
+            }
+
+            return null;
+        }
+
+        public RouteTable SeekRouteTable(string sourceName)
+        {
+            foreach (RouteTable routeTable in RouteTables)
+            {
+                if (routeTable.ToString() == sourceName)
+                    return routeTable;
             }
 
             return null;
@@ -189,14 +202,55 @@ namespace MigAz.Azure
                 {
                     if (targetSubnet.NetworkSecurityGroup != null)
                     {
-                        MigrationTarget.NetworkSecurityGroup networkSecurityGroupInMigration = this.SeekNetworkSecurityGroup(targetSubnet.NetworkSecurityGroup.ToString());
-
-                        if (networkSecurityGroupInMigration == null)
+                        if (targetSubnet.NetworkSecurityGroup.GetType() == typeof(Arm.NetworkSecurityGroup))
                         {
-                            this.AddAlert(AlertType.Error, "Virtual Network '" + targetVirtualNetwork.ToString() + "' Subnet '" + targetSubnet.ToString() + "' utilizes Network Security Group (NSG) '" + targetSubnet.NetworkSecurityGroup.ToString() + "', but the NSG resource is not added into the migration template.", targetSubnet);
+                            Arm.NetworkSecurityGroup networkSecurityGroup = (Arm.NetworkSecurityGroup) targetSubnet.NetworkSecurityGroup;
+                            if (networkSecurityGroup.AzureSubscription.SubscriptionId != this.TargetSubscription.SubscriptionId)
+                            {
+                                this.AddAlert(AlertType.Error, "Virtual Network '" + targetVirtualNetwork.ToString() + "' Subnet '" + targetSubnet.ToString() + "' ARM Network Security Group (NSG) '" + networkSecurityGroup.ToString() + "'which is only available within the source Azure Subscription (" + this.TargetSubscription.ToString() + ")." + targetSubnet.NetworkSecurityGroup.ToString() + "', but the NSG resource is not added into the migration template.", targetSubnet);
+                            }
+                        }
+                        else if (targetSubnet.NetworkSecurityGroup.GetType() == typeof(MigrationTarget.NetworkSecurityGroup))
+                        {
+                            MigrationTarget.NetworkSecurityGroup networkSecurityGroupInMigration = this.SeekNetworkSecurityGroup(targetSubnet.NetworkSecurityGroup.ToString());
+
+                            if (networkSecurityGroupInMigration == null)
+                            {
+                                this.AddAlert(AlertType.Error, "Virtual Network '" + targetVirtualNetwork.ToString() + "' Subnet '" + targetSubnet.ToString() + "' utilizes Network Security Group (NSG) '" + targetSubnet.NetworkSecurityGroup.ToString() + "', but the NSG resource is not added into the migration template.", targetSubnet);
+                            }
+                        }
+                    }
+
+                    if (targetSubnet.RouteTable != null)
+                    {
+                        if (targetSubnet.RouteTable.GetType() == typeof(Arm.RouteTable))
+                        {
+                            Arm.RouteTable routeTable = (Arm.RouteTable)targetSubnet.RouteTable;
+                            if (routeTable.AzureSubscription.SubscriptionId != this.TargetSubscription.SubscriptionId)
+                            {
+                                this.AddAlert(AlertType.Error, "Virtual Network '" + targetVirtualNetwork.ToString() + "' Subnet '" + targetSubnet.ToString() + "' ARM Route Table '" + routeTable.ToString() + "' which is only available within the source Azure Subscription (" + this.TargetSubscription.ToString() + ")." + targetSubnet.NetworkSecurityGroup.ToString() + "', but the NSG resource is not added into the migration template.", targetSubnet);
+                            }
+
+                        }
+                        else if (targetSubnet.RouteTable.GetType() == typeof(MigrationTarget.RouteTable))
+                        {
+                            MigrationTarget.RouteTable routeTableInMigration = this.SeekRouteTable(targetSubnet.RouteTable.ToString());
+
+                            if (routeTableInMigration == null)
+                            {
+                                this.AddAlert(AlertType.Error, "Virtual Network '" + targetVirtualNetwork.ToString() + "' Subnet '" + targetSubnet.ToString() + "' utilizes Route Table '" + targetSubnet.RouteTable.ToString() + "', but the Route Table resource is not added into the migration template.", targetSubnet);
+                            }
                         }
                     }
                 }
+            }
+
+            foreach (MigrationTarget.ApplicationSecurityGroup targetApplicationSecurityGroup in this.ApplicationSecurityGroups)
+            {
+                ValidateTargetApiVersion(targetApplicationSecurityGroup);
+
+                if (targetApplicationSecurityGroup.TargetName == string.Empty)
+                    this.AddAlert(AlertType.Error, "Target Name for Application Security Group must be specified.", targetApplicationSecurityGroup);
             }
 
             foreach (MigrationTarget.NetworkSecurityGroup targetNetworkSecurityGroup in this.NetworkSecurityGroups)
@@ -366,7 +420,7 @@ namespace MigAz.Azure
                         else
                         {
                             // Ensure selected target VM Size is available in the Target Azure Location
-                            Arm.VMSize matchedVmSize = this.ResourceGroup.TargetLocation.SeekVmSize(virtualMachine.TargetSize.Name);
+                            Arm.VMSize matchedVmSize = await this.ResourceGroup.TargetLocation.SeekVmSize(virtualMachine.TargetSize.Name);
                             if (matchedVmSize == null)
                                 this.AddAlert(AlertType.Error, "Specified VM Size '" + virtualMachine.TargetSize.Name + "' for Virtual Machine '" + virtualMachine.ToString() + "' is invalid as it is not available in Azure Location '" + this.ResourceGroup.TargetLocation.DisplayName + "'.", virtualMachine);
                         }
@@ -559,12 +613,15 @@ namespace MigAz.Azure
         {
             foreach (VirtualMachine virtrualMachine in this.VirtualMachines)
             {
-                if (virtrualMachine.OSVirtualHardDisk.TargetStorage != null && virtrualMachine.OSVirtualHardDisk.TargetStorage.GetType() == typeof(StorageAccount))
+                if (virtrualMachine.OSVirtualHardDisk != null)
                 {
-                    StorageAccount osDiskStorageAccount = (StorageAccount)virtrualMachine.OSVirtualHardDisk.TargetStorage;
-                    if (osDiskStorageAccount == targetStorageAccount)
+                    if (virtrualMachine.OSVirtualHardDisk.TargetStorage != null && virtrualMachine.OSVirtualHardDisk.TargetStorage.GetType() == typeof(StorageAccount))
                     {
-                        return true;
+                        StorageAccount osDiskStorageAccount = (StorageAccount)virtrualMachine.OSVirtualHardDisk.TargetStorage;
+                        if (osDiskStorageAccount == targetStorageAccount)
+                        {
+                            return true;
+                        }
                     }
                 }
 
@@ -616,17 +673,24 @@ namespace MigAz.Azure
             if (targetDisk.DiskSizeInGB == 0)
                 this.AddAlert(AlertType.Error, "Disk '" + targetDisk.ToString() + "' does not have a Disk Size defined.  Disk Size (not to exceed 4095 GB) is required.", targetDisk);
 
-            if (targetDisk.IsSmallerThanSourceDisk)
-                this.AddAlert(AlertType.Error, "Disk '" + targetDisk.ToString() + "' Size of " + targetDisk.DiskSizeInGB.ToString() + " GB cannot be smaller than the source Disk Size of " + targetDisk.SourceDisk.DiskSizeGb.ToString() + " GB.", targetDisk);
-
-            if (targetDisk.IsTargetLunDifferentThanSourceLun)
-                this.AddAlert(AlertType.Warning, "Disk '" + targetDisk.ToString() + "' target LUN " + targetDisk.Lun.ToString() + " does not match the source LUN " + targetDisk.SourceDisk.Lun.ToString() + ".", targetDisk);
-
-            if (targetDisk.SourceDisk != null && targetDisk.SourceDisk.GetType() == typeof(Azure.Arm.ClassicDisk))
+            if (targetDisk.Source != null)
             {
-                if (targetDisk.SourceDisk.IsEncrypted)
+                IDisk sourceDisk = (IDisk)targetDisk.Source;
+
+                if (targetDisk.IsSmallerThanSourceDisk)
+                    this.AddAlert(AlertType.Error, "Disk '" + targetDisk.ToString() + "' Size of " + targetDisk.DiskSizeInGB.ToString() + " GB cannot be smaller than the source Disk Size of " + sourceDisk.DiskSizeGb.ToString() + " GB.", targetDisk);
+
+                if (targetDisk.IsTargetLunDifferentThanSourceLun)
+                    this.AddAlert(AlertType.Warning, "Disk '" + targetDisk.ToString() + "' target LUN " + targetDisk.Lun.ToString() + " does not match the source LUN " + sourceDisk.Lun.ToString() + ".", targetDisk);
+
+                if (sourceDisk.GetType() == typeof(Azure.Arm.ClassicDisk))
                 {
-                    this.AddAlert(AlertType.Error, "Disk '" + targetDisk.ToString() + "' is encrypted.  MigAz does not contain support for moving encrypted Azure Compute VMs.", targetDisk);
+                    Azure.Arm.ClassicDisk classicDisk = (Azure.Arm.ClassicDisk)targetDisk.Source;
+
+                    if (classicDisk.IsEncrypted)
+                    {
+                        this.AddAlert(AlertType.Error, "Disk '" + targetDisk.ToString() + "' is encrypted.  MigAz does not contain support for moving encrypted Azure Compute VMs.", targetDisk);
+                    }
                 }
             }
 

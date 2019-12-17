@@ -1,6 +1,7 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
+using MigAz.Azure.Arm;
 using MigAz.Azure.Core;
 using MigAz.Azure.Core.ArmTemplate;
 using MigAz.Azure.Core.Interface;
@@ -14,7 +15,7 @@ namespace MigAz.Azure.MigrationTarget
 {
     public class NetworkInterface : Core.MigrationTarget
     {
-        private INetworkInterface _SourceNetworkInterface;
+        //private INetworkInterface _SourceNetworkInterface;
         private bool _EnableIPForwarding = false;
         private bool _EnableAcceleratedNetworking = false;
         private List<MigrationTarget.NetworkInterfaceIpConfiguration> _TargetNetworkInterfaceIpConfigurations = new List<MigrationTarget.NetworkInterfaceIpConfiguration>();
@@ -24,45 +25,45 @@ namespace MigAz.Azure.MigrationTarget
 
         #region Constructors
 
-        private NetworkInterface() : base(ArmConst.MicrosoftNetwork, ArmConst.NetworkInterfaces, null) { }
+        private NetworkInterface() : base(null, ArmConst.MicrosoftNetwork, ArmConst.NetworkInterfaces, null, null) { }
 
-        public NetworkInterface(Asm.VirtualMachine virtualMachine, Asm.NetworkInterface networkInterface, List<VirtualNetwork> virtualNetworks, List<NetworkSecurityGroup> networkSecurityGroups, TargetSettings targetSettings, ILogProvider logProvider) : base(ArmConst.MicrosoftNetwork, ArmConst.NetworkInterfaces, logProvider)
+        public NetworkInterface(AzureSubscription azureSubscription, Asm.VirtualMachine virtualMachine, Asm.NetworkInterface networkInterface, List<VirtualNetwork> virtualNetworks, List<NetworkSecurityGroup> networkSecurityGroups, TargetSettings targetSettings, ILogProvider logProvider) : base(azureSubscription, ArmConst.MicrosoftNetwork, ArmConst.NetworkInterfaces, targetSettings, logProvider)
         {
-            _SourceNetworkInterface = networkInterface;
+            this.Source = networkInterface;
             this.SetTargetName(networkInterface.Name, targetSettings);
             this.IsPrimary = networkInterface.IsPrimary;
             this.EnableIPForwarding = networkInterface.EnableIpForwarding;
             
             foreach (Asm.NetworkInterfaceIpConfiguration asmNetworkInterfaceIpConfiguration in networkInterface.NetworkInterfaceIpConfigurations)
             {
-                NetworkInterfaceIpConfiguration migrationNetworkInterfaceIpConfiguration = new NetworkInterfaceIpConfiguration(asmNetworkInterfaceIpConfiguration, virtualNetworks, targetSettings, logProvider);
+                NetworkInterfaceIpConfiguration migrationNetworkInterfaceIpConfiguration = new NetworkInterfaceIpConfiguration(this.AzureSubscription, asmNetworkInterfaceIpConfiguration, virtualNetworks, targetSettings, logProvider);
                 this.TargetNetworkInterfaceIpConfigurations.Add(migrationNetworkInterfaceIpConfiguration);
             }
 
             if (virtualMachine.NetworkSecurityGroup != null)
             {
-                this.NetworkSecurityGroup = NetworkSecurityGroup.SeekNetworkSecurityGroup(networkSecurityGroups, virtualMachine.NetworkSecurityGroup.ToString());
+                this.NetworkSecurityGroup = null; // russell todo now  NetworkSecurityGroup.SeekNetworkSecurityGroup(networkSecurityGroups, virtualMachine.NetworkSecurityGroup.ToString());
             }
         }
 
-        public NetworkInterface(Arm.NetworkInterface networkInterface, List<MigrationTarget.VirtualNetwork> armVirtualNetworks, List<MigrationTarget.NetworkSecurityGroup> armNetworkSecurityGroups, TargetSettings targetSettings, ILogProvider logProvider) : base(ArmConst.MicrosoftNetwork, ArmConst.NetworkInterfaces, logProvider)
+        public NetworkInterface(AzureSubscription azureSubscription, Arm.NetworkInterface networkInterface, List<MigrationTarget.VirtualNetwork> armVirtualNetworks, List<MigrationTarget.NetworkSecurityGroup> armNetworkSecurityGroups, TargetSettings targetSettings, ILogProvider logProvider) : base(azureSubscription, ArmConst.MicrosoftNetwork, ArmConst.NetworkInterfaces, targetSettings, logProvider)
         {
-            _SourceNetworkInterface = networkInterface;
+            this.Source = networkInterface;
             this.SetTargetName(networkInterface.Name, targetSettings);
-            this.IsPrimary = networkInterface.IsPrimary;
+        }
+
+        public NetworkInterface(AzureSubscription azureSubscription, Arm.NetworkInterface networkInterface, TargetSettings targetSettings, ILogProvider logProvider) : base(azureSubscription, ArmConst.MicrosoftNetwork, ArmConst.NetworkInterfaces, targetSettings, logProvider)
+        {
+            this.Source = networkInterface;
+            this.SetTargetName(networkInterface.Name, targetSettings);
+
+            if (networkInterface.IsPrimary.HasValue)
+                this.IsPrimary = networkInterface.IsPrimary.Value;
+
             this.EnableIPForwarding = networkInterface.EnableIPForwarding;
             this.EnableAcceleratedNetworking = networkInterface.EnableAcceleratedNetworking;
 
-            foreach (Arm.NetworkInterfaceIpConfiguration armNetworkInterfaceIpConfiguration in networkInterface.NetworkInterfaceIpConfigurations)
-            {
-                NetworkInterfaceIpConfiguration targetNetworkInterfaceIpConfiguration = new NetworkInterfaceIpConfiguration(armNetworkInterfaceIpConfiguration, armVirtualNetworks, targetSettings, this.LogProvider);
-                this.TargetNetworkInterfaceIpConfigurations.Add(targetNetworkInterfaceIpConfiguration);
-            }
-
-            if (networkInterface.NetworkSecurityGroup != null)
-            {
-                this.NetworkSecurityGroup = NetworkSecurityGroup.SeekNetworkSecurityGroup(armNetworkSecurityGroups, networkInterface.NetworkSecurityGroup.ToString());
-            }
+            //_TargetSettings = targetSettings;
         }
 
         #endregion
@@ -113,22 +114,6 @@ namespace MigAz.Azure.MigrationTarget
             set { _BackEndAddressPool = value; }
         }
 
-        public INetworkInterface SourceNetworkInterface
-        {
-            get { return _SourceNetworkInterface; }
-        }
-
-        public String SourceName
-        {
-            get
-            {
-                if (this.SourceNetworkInterface == null)
-                    return String.Empty;
-                else
-                    return this.SourceNetworkInterface.ToString();
-            }
-        }
-
         public override string ImageKey { get { return "NetworkInterface"; } }
 
         public override string FriendlyObjectName { get { return "Network Interface"; } }
@@ -142,6 +127,35 @@ namespace MigAz.Azure.MigrationTarget
             this.TargetNameResult = this.TargetName + targetSettings.NetworkInterfaceCardSuffix;
         }
 
+        public override async Task RefreshFromSource()
+        {
+            if (this.Source != null)
+            {
+                if (this.Source.GetType() == typeof(Arm.NetworkInterface))
+                {
+                    Arm.NetworkInterface networkInterface = (Arm.NetworkInterface)this.Source;
+
+                    if (networkInterface.IsPrimary.HasValue)
+                        this.IsPrimary = networkInterface.IsPrimary.Value;
+
+                    this.EnableIPForwarding = networkInterface.EnableIPForwarding;
+                    this.EnableAcceleratedNetworking = networkInterface.EnableAcceleratedNetworking;
+                    
+                    foreach (Arm.NetworkInterfaceIpConfiguration armNetworkInterfaceIpConfiguration in networkInterface.NetworkInterfaceIpConfigurations)
+                    {
+                        NetworkInterfaceIpConfiguration targetNetworkInterfaceIpConfiguration = new NetworkInterfaceIpConfiguration(this.AzureSubscription, armNetworkInterfaceIpConfiguration, this.TargetSettings, this.LogProvider);
+                        await targetNetworkInterfaceIpConfiguration.RefreshFromSource();
+
+                        this.TargetNetworkInterfaceIpConfigurations.Add(targetNetworkInterfaceIpConfiguration);
+                    }
+
+                    if (networkInterface.NetworkSecurityGroupId != null)
+                    {
+                        this.NetworkSecurityGroup = (MigrationTarget.NetworkSecurityGroup) await this.AzureSubscription.SeekMigrationTargetBySource(networkInterface.NetworkSecurityGroupId);
+                    }
+                }
+            }
+        }
     }
 }
 

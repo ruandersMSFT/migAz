@@ -14,6 +14,7 @@ using MigAz.Azure;
 using MigAz.Azure.Core.Interface;
 using MigAz.Azure.Core;
 using MigAz.Azure.MigrationTarget;
+using MigAz.Azure.Interface;
 
 namespace MigAz.Azure.UserControls
 {
@@ -35,15 +36,15 @@ namespace MigAz.Azure.UserControls
                 _StorageAccount = storageAccount;
                 txtTargetName.MaxLength = StorageAccount.MaximumTargetNameLength(targetTreeView.TargetSettings);
 
-                if (_StorageAccount.SourceAccount == null)
+                if (_StorageAccount.Source == null)
                 {
                     lblAccountType.Text = String.Empty;
                     lblSourceASMName.Text = String.Empty;
                 }
                 else
                 {
-                    lblAccountType.Text = _StorageAccount.SourceAccount.AccountType;
-                    lblSourceASMName.Text = _StorageAccount.SourceAccount.Name;
+                    lblAccountType.Text = ((IStorageAccount)_StorageAccount.Source).AccountType;
+                    lblSourceASMName.Text = ((IStorageAccount)_StorageAccount.Source).Name;
                 }
 
                 if (storageAccount.TargetName != null)

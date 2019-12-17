@@ -15,7 +15,7 @@ using MigAz.Azure.Core.ArmTemplate;
 
 namespace MigAz.Azure.MigrationTarget
 {
-    public class VirtualMachine : Core.MigrationTarget
+    public class VirtualMachine : Core.MigrationTarget // IVirtualMachine
     {
         private AvailabilitySet _TargetAvailabilitySet = null;
         private Arm.VMSize _TargetSize;
@@ -25,13 +25,20 @@ namespace MigAz.Azure.MigrationTarget
 
         #region Constructors
 
-        private VirtualMachine() : base(ArmConst.MicrosoftCompute, ArmConst.VirtualMachines, null) { }
+        private VirtualMachine() : base(null, ArmConst.MicrosoftCompute, ArmConst.VirtualMachines, null, null) { }
+        private VirtualMachine(AzureSubscription azureSubscription, TargetSettings targetSettings, ILogProvider logProvider) : base(null, ArmConst.MicrosoftCompute, ArmConst.VirtualMachines, targetSettings, logProvider) { }
 
-        public VirtualMachine(Asm.VirtualMachine virtualMachine, TargetSettings targetSettings, ILogProvider logProvider) : base(ArmConst.MicrosoftCompute, ArmConst.VirtualMachines, logProvider)
+        public static Task<VirtualMachine> CreateAsync(AzureSubscription azureSubscription, Asm.VirtualMachine virtualMachine, TargetSettings targetSettings, ILogProvider logProvider)
+        {
+            var ret = new VirtualMachine(azureSubscription, targetSettings, logProvider);
+            return ret.InitializeAsync(azureSubscription, virtualMachine, targetSettings, logProvider);
+        }
+
+        private async Task<VirtualMachine> InitializeAsync(AzureSubscription azureSubscription, Asm.VirtualMachine virtualMachine, TargetSettings targetSettings, ILogProvider logProvider)
         {
             this.Source = virtualMachine;
             this.SetTargetName(virtualMachine.RoleName, targetSettings);
-            this.OSVirtualHardDisk = new Disk(virtualMachine.OSVirtualHardDisk, this, targetSettings, logProvider);
+            this.OSVirtualHardDisk = new Disk(azureSubscription, virtualMachine.OSVirtualHardDisk, this, targetSettings, logProvider);
             this.OSVirtualHardDiskOS = virtualMachine.OSVirtualHardDiskOS;
 
             if (targetSettings.DefaultTargetDiskType == ArmDiskType.ClassicDisk)
@@ -39,7 +46,7 @@ namespace MigAz.Azure.MigrationTarget
 
             foreach (Asm.Disk asmDataDisk in virtualMachine.DataDisks)
             {
-                Disk targetDataDisk = new Disk(asmDataDisk, this, targetSettings, logProvider);
+                Disk targetDataDisk = new Disk(azureSubscription, asmDataDisk, this, targetSettings, logProvider);
 
                 EnsureDataDiskTargetLunIsNotNull(ref targetDataDisk);
 
@@ -51,7 +58,7 @@ namespace MigAz.Azure.MigrationTarget
 
             foreach (Asm.NetworkInterface asmNetworkInterface in virtualMachine.NetworkInterfaces)
             {
-                NetworkInterface migrationNetworkInterface = new NetworkInterface(virtualMachine, asmNetworkInterface, virtualMachine.AzureSubscription.AsmTargetVirtualNetworks, virtualMachine.AzureSubscription.AsmTargetNetworkSecurityGroups, targetSettings, logProvider);
+                NetworkInterface migrationNetworkInterface = new NetworkInterface(azureSubscription, virtualMachine, asmNetworkInterface, virtualMachine.AzureSubscription.AsmTargetVirtualNetworks, virtualMachine.AzureSubscription.AsmTargetNetworkSecurityGroups, targetSettings, logProvider);
                 migrationNetworkInterface.ParentVirtualMachine = this;
                 this.NetworkInterfaces.Add(migrationNetworkInterface);
             }
@@ -62,7 +69,7 @@ namespace MigAz.Azure.MigrationTarget
             Arm.Location armLocation = virtualMachine.AzureSubscription.GetAzureARMLocation(virtualMachine.Location);
             if (armLocation != null)
             {
-                this.TargetSize = armLocation.SeekVmSize(virtualMachine.RoleSize.Name);
+                this.TargetSize = await armLocation.SeekVmSize(virtualMachine.RoleSize.Name);
 
                 if (this.TargetSize == null)
                 {
@@ -84,127 +91,24 @@ namespace MigAz.Azure.MigrationTarget
 
                     if (VMSizeTable.ContainsKey(virtualMachine.RoleSize.Name))
                     {
-                        this.TargetSize = armLocation.SeekVmSize(VMSizeTable[virtualMachine.RoleSize.Name]);
+                        this.TargetSize = await armLocation.SeekVmSize(VMSizeTable[virtualMachine.RoleSize.Name]);
                     }
                 }
             }
 
             #endregion
+
+            return this;
         }
 
-        public VirtualMachine(Arm.VirtualMachine virtualMachine, TargetSettings targetSettings, ILogProvider logProvider) : base(ArmConst.MicrosoftCompute, ArmConst.VirtualMachines, logProvider)
+        public VirtualMachine(AzureSubscription azureSubscription, Arm.VirtualMachine virtualMachine, TargetSettings targetSettings, ILogProvider logProvider) : base(azureSubscription, ArmConst.MicrosoftCompute, ArmConst.VirtualMachines, targetSettings, logProvider)
         {
+            if (virtualMachine == null)
+                throw new ArgumentException("Virtual Machine is requred.");
+
             this.Source = virtualMachine;
-            this.SetTargetName(virtualMachine.Name, targetSettings);
+            this.SetTargetName(virtualMachine.Name, this.TargetSettings);
             this.TargetSize = virtualMachine.VmSize;
-            this.OSVirtualHardDiskOS = virtualMachine.OSVirtualHardDiskOS;
-
-            if (virtualMachine.OSVirtualHardDisk != null && virtualMachine.OSVirtualHardDisk.GetType() == typeof(Azure.Arm.ManagedDisk))
-            {
-                Azure.Arm.ManagedDisk sourceManagedDisk = (Azure.Arm.ManagedDisk)virtualMachine.OSVirtualHardDisk;
-
-                foreach (Disk targetDisk in virtualMachine.AzureSubscription.ArmTargetManagedDisks)
-                {
-                    if ((targetDisk.SourceDisk != null) && (targetDisk.SourceDisk.GetType() == typeof(Azure.Arm.ManagedDisk)))
-                    {
-                        Azure.Arm.ManagedDisk targetDiskSourceDisk = (Azure.Arm.ManagedDisk)targetDisk.SourceDisk;
-                        if (String.Compare(targetDiskSourceDisk.Name, sourceManagedDisk.Name, true) == 0)
-                        {
-                            this.OSVirtualHardDisk = targetDisk;
-                            targetDisk.ParentVirtualMachine = this;
-                            targetDisk.HostCaching = sourceManagedDisk.HostCaching;
-                            break;
-                        }
-                    }
-                }
-            }
-            else
-            {
-                if (virtualMachine.OSVirtualHardDisk != null)
-                {
-                    this.OSVirtualHardDisk = new Disk(virtualMachine.OSVirtualHardDisk, this, targetSettings, this.LogProvider);
-                }
-            }
-
-            if (virtualMachine.OSVirtualHardDisk != null && virtualMachine.OSVirtualHardDisk.GetType() == typeof(Arm.ClassicDisk))
-            {
-                Arm.ClassicDisk armDisk = (Arm.ClassicDisk)virtualMachine.OSVirtualHardDisk;
-                if (targetSettings.DefaultTargetDiskType == ArmDiskType.ClassicDisk)
-                    this.OSVirtualHardDisk.TargetStorage = SeekTargetStorageAccount(virtualMachine.AzureSubscription.ArmTargetStorageAccounts, armDisk.StorageAccountName);
-            }
-
-            foreach (IArmDisk dataDisk in virtualMachine.DataDisks)
-            {
-                if (dataDisk.GetType() == typeof(Azure.Arm.ManagedDisk))
-                {
-                    Azure.Arm.ManagedDisk sourceManagedDisk = (Azure.Arm.ManagedDisk)dataDisk;
-                    MigrationTarget.Disk targetDataDisk = null;
-
-                    foreach (Disk targetDisk in virtualMachine.AzureSubscription.ArmTargetManagedDisks)
-                    {
-                        if ((targetDisk.SourceDisk != null) && (targetDisk.SourceDisk.GetType() == typeof(Azure.Arm.ManagedDisk)))
-                        {
-                            Azure.Arm.ManagedDisk targetDiskSourceDisk = (Azure.Arm.ManagedDisk)targetDisk.SourceDisk;
-                            if (String.Compare(targetDiskSourceDisk.Name, sourceManagedDisk.Name, true) == 0)
-                            {
-                                targetDataDisk = targetDisk;
-                                break;
-                            }
-                        }
-                    }
-
-                    if (targetDataDisk != null)
-                    {
-                        EnsureDataDiskTargetLunIsNotNull(ref targetDataDisk);
-                        targetDataDisk.ParentVirtualMachine = this;
-                        targetDataDisk.Lun = sourceManagedDisk.Lun;
-                        targetDataDisk.HostCaching = sourceManagedDisk.HostCaching;
-
-                        this.DataDisks.Add(targetDataDisk);
-                    }
-                }
-                else if(dataDisk.GetType() == typeof(Arm.ClassicDisk))
-                {
-                    Disk targetDataDisk = new Disk(dataDisk, this, targetSettings, this.LogProvider);
-
-                    Arm.ClassicDisk armDisk = (Arm.ClassicDisk)dataDisk;
-                    if (targetSettings.DefaultTargetDiskType == ArmDiskType.ClassicDisk)
-                        targetDataDisk.TargetStorage = SeekTargetStorageAccount(virtualMachine.AzureSubscription.ArmTargetStorageAccounts, armDisk.StorageAccountName);
-
-                    EnsureDataDiskTargetLunIsNotNull(ref targetDataDisk);
-
-                    this.DataDisks.Add(targetDataDisk);
-                }
-            }
-
-            foreach (Arm.NetworkInterface armNetworkInterface in virtualMachine.NetworkInterfaces)
-            {
-                foreach (NetworkInterface targetNetworkInterface in virtualMachine.AzureSubscription.ArmTargetNetworkInterfaces)
-                {
-                    if ((targetNetworkInterface.SourceNetworkInterface != null) && (targetNetworkInterface.SourceNetworkInterface.GetType() == typeof(Azure.Arm.NetworkInterface)))
-                    {
-                        Azure.Arm.NetworkInterface targetNetworkInterfaceSourceInterface = (Azure.Arm.NetworkInterface)targetNetworkInterface.SourceNetworkInterface;
-                        if (String.Compare(targetNetworkInterfaceSourceInterface.Name, armNetworkInterface.Name, true) == 0)
-                        {
-                            this.NetworkInterfaces.Add(targetNetworkInterface);
-                            targetNetworkInterface.ParentVirtualMachine = this;
-                            break;
-                        }
-                    }
-                }
-
-                
-            }
-
-            if (virtualMachine.HasPlan)
-            {
-                _PlanAttributes = new Dictionary<string, string>();
-
-                foreach (JProperty planAttribute in virtualMachine.ResourceToken["plan"])
-                {
-                    _PlanAttributes.Add(planAttribute.Name, planAttribute.Value.ToString());
-                }
-            }
         }
 
         #endregion
@@ -241,8 +145,6 @@ namespace MigAz.Azure.MigrationTarget
             get { return _DataDisks; }
         }
 
-        public IVirtualMachine Source { get; set; }
-
         public List<NetworkInterface> NetworkInterfaces
         {
             get { return _NetworkInterfaces; }
@@ -252,13 +154,7 @@ namespace MigAz.Azure.MigrationTarget
         {
             get
             {
-                foreach (NetworkInterface networkInterface in this.NetworkInterfaces)
-                {
-                    if (networkInterface.IsPrimary)
-                        return networkInterface;
-                }
-
-                return null;
+                return this.NetworkInterfaces.Where(x => x.IsPrimary).FirstOrDefault();
             }
         }
 
@@ -273,17 +169,6 @@ namespace MigAz.Azure.MigrationTarget
         {
             get { return _PlanAttributes; }
             set { _PlanAttributes = value; }
-        }
-
-        public string SourceName
-        {
-            get
-            {
-                if (this.Source == null)
-                    return String.Empty;
-                else
-                    return this.Source.ToString();
-            }
         }
 
         public string OSVirtualHardDiskOS
@@ -358,6 +243,114 @@ namespace MigAz.Azure.MigrationTarget
             this.TargetName = targetName.Trim().Replace(" ", String.Empty);
             this.TargetNameResult = this.TargetName + targetSettings.VirtualMachineSuffix;
         }
+
+        public override async Task RefreshFromSource()
+        {
+            if (this.Source != null)
+            {
+                if (this.Source.GetType() == typeof(Arm.VirtualMachine))
+                {
+                    Arm.VirtualMachine virtualMachine = (Arm.VirtualMachine)this.Source;
+
+                    if (virtualMachine.AvailabilitySetId != null)
+                    {
+                        if (this.TargetAvailabilitySet == null)
+                        {
+                            this.TargetAvailabilitySet = (MigrationTarget.AvailabilitySet) await this.AzureSubscription.SeekMigrationTargetBySource(virtualMachine.AvailabilitySetId);
+                        }
+                    }
+
+                    this.OSVirtualHardDiskOS = virtualMachine.OSVirtualHardDiskOS;
+
+                    if (virtualMachine.OSVirtualHardDisk != null && virtualMachine.OSVirtualHardDisk.GetType() == typeof(Azure.Arm.ManagedDisk))
+                    {
+                        Azure.Arm.ManagedDisk sourceManagedDisk = (Azure.Arm.ManagedDisk)virtualMachine.OSVirtualHardDisk;
+                        MigrationTarget.Disk migrationTargetDisk = (MigrationTarget.Disk)this.AzureSubscription.SeekMigrationTargetBySource(sourceManagedDisk);
+
+                        if (migrationTargetDisk != null)
+                        {
+                            this.OSVirtualHardDisk = migrationTargetDisk;
+                            migrationTargetDisk.HostCaching = sourceManagedDisk.HostCaching;
+                        }
+                    }
+                    else
+                    {
+                        if (virtualMachine.OSVirtualHardDisk != null)
+                        {
+                            this.OSVirtualHardDisk = new Disk(this.AzureSubscription, virtualMachine.OSVirtualHardDisk, this, this.TargetSettings, this.LogProvider);
+                        }
+                    }
+
+                    if (virtualMachine.OSVirtualHardDisk != null && virtualMachine.OSVirtualHardDisk.GetType() == typeof(Arm.ClassicDisk))
+                    {
+                        Arm.ClassicDisk armDisk = (Arm.ClassicDisk)virtualMachine.OSVirtualHardDisk;
+                        // todo now russell
+                        //if (targetSettings.DefaultTargetDiskType == ArmDiskType.ClassicDisk)
+                        //    this.OSVirtualHardDisk.TargetStorage = SeekTargetStorageAccount(virtualMachine.AzureSubscription.ArmTargetStorageAccounts, armDisk.StorageAccountName);
+                    }
+
+                    foreach (IArmDisk dataDisk in virtualMachine.DataDisks)
+                    {
+                        if (dataDisk.GetType() == typeof(Azure.Arm.ManagedDisk))
+                        {
+                            Azure.Arm.ManagedDisk sourceManagedDisk = (Azure.Arm.ManagedDisk)dataDisk;
+                            MigrationTarget.Disk targetDataDisk = null;
+
+                            // todo now russell
+                            //foreach (Disk targetDisk in virtualMachine.AzureSubscription.ArmTargetManagedDisks)
+                            //{
+                            //    if ((targetDisk.Source != null) && (targetDisk.Source.GetType() == typeof(Azure.Arm.ManagedDisk)))
+                            //    {
+                            //        Azure.Arm.ManagedDisk targetDiskSourceDisk = (Azure.Arm.ManagedDisk)targetDisk.Source;
+                            //        if (String.Compare(targetDiskSourceDisk.Name, sourceManagedDisk.Name, true) == 0)
+                            //        {
+                            //            targetDataDisk = targetDisk;
+                            //            break;
+                            //        }
+                            //    }
+                            //}
+
+                            if (targetDataDisk != null)
+                            {
+                                EnsureDataDiskTargetLunIsNotNull(ref targetDataDisk);
+                                targetDataDisk.ParentVirtualMachine = this;
+                                targetDataDisk.Lun = sourceManagedDisk.Lun;
+                                targetDataDisk.HostCaching = sourceManagedDisk.HostCaching;
+
+                                this.DataDisks.Add(targetDataDisk);
+                            }
+                        }
+                        else if (dataDisk.GetType() == typeof(Arm.ClassicDisk))
+                        {
+                            Disk targetDataDisk = new Disk(this.AzureSubscription, dataDisk, this, this.TargetSettings, this.LogProvider);
+
+                            Arm.ClassicDisk armDisk = (Arm.ClassicDisk)dataDisk;
+                            // todo now russell
+                            //if (targetSettings.DefaultTargetDiskType == ArmDiskType.ClassicDisk)
+                            //    targetDataDisk.TargetStorage = SeekTargetStorageAccount(virtualMachine.AzureSubscription.ArmTargetStorageAccounts, armDisk.StorageAccountName);
+
+                            EnsureDataDiskTargetLunIsNotNull(ref targetDataDisk);
+
+                            this.DataDisks.Add(targetDataDisk);
+                        }
+                    }
+
+                    foreach (string armNetworkInterfaceId in virtualMachine.NetworkInterfaceIds)
+                    {
+                        this.NetworkInterfaces.Add((MigrationTarget.NetworkInterface) await this.AzureSubscription.SeekMigrationTargetBySource(armNetworkInterfaceId));
+                    }
+
+                    if (virtualMachine.HasPlan)
+                    {
+                        _PlanAttributes = new Dictionary<string, string>();
+
+                        foreach (JProperty planAttribute in virtualMachine.ResourceToken["plan"])
+                        {
+                            _PlanAttributes.Add(planAttribute.Name, planAttribute.Value.ToString());
+                        }
+                    }
+                }
+            }
+        }
     }
 }
-

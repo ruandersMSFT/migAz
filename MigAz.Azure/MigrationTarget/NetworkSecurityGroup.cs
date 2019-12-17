@@ -12,70 +12,36 @@ using System.Threading.Tasks;
 
 namespace MigAz.Azure.MigrationTarget
 {
-    public class NetworkSecurityGroup : Core.MigrationTarget
+    public class NetworkSecurityGroup : Core.MigrationTarget, IMigrationNetworkSecurityGroup
     {
-        private INetworkSecurityGroup _SourceNetworkSecurityGroup;
+        //private INetworkSecurityGroup _SourceNetworkSecurityGroup;
         private List<NetworkSecurityGroupRule> _Rules = new List<NetworkSecurityGroupRule>();
 
-        private NetworkSecurityGroup() : base(ArmConst.MicrosoftNetwork, ArmConst.NetworkSecurityGroups, null) { }
+        private NetworkSecurityGroup() : base(null, ArmConst.MicrosoftNetwork, ArmConst.NetworkSecurityGroups, null, null) { }
 
-        public NetworkSecurityGroup(Asm.NetworkSecurityGroup source, TargetSettings targetSettings, ILogProvider logProvider) : base(ArmConst.MicrosoftNetwork, ArmConst.NetworkSecurityGroups, logProvider)
+        public NetworkSecurityGroup(AzureSubscription azureSubscription, Asm.NetworkSecurityGroup source, TargetSettings targetSettings, ILogProvider logProvider) : base(azureSubscription, ArmConst.MicrosoftNetwork, ArmConst.NetworkSecurityGroups, targetSettings, logProvider)
         {
-            _SourceNetworkSecurityGroup = source;
+            this.Source = source;
             this.SetTargetName(source.Name, targetSettings);
 
             foreach (Asm.NetworkSecurityGroupRule sourceRule in source.Rules)
             {
-                NetworkSecurityGroupRule targetRule = new NetworkSecurityGroupRule(sourceRule, targetSettings, this.LogProvider);
+                NetworkSecurityGroupRule targetRule = new NetworkSecurityGroupRule(this.AzureSubscription, sourceRule, targetSettings, logProvider);
                 this.Rules.Add(targetRule);
             }
         }
 
-        public NetworkSecurityGroup(Arm.NetworkSecurityGroup source, TargetSettings targetSettings, ILogProvider logProvider) : base(ArmConst.MicrosoftNetwork, ArmConst.NetworkSecurityGroups, logProvider)
+        public NetworkSecurityGroup(AzureSubscription azureSubscription, Arm.NetworkSecurityGroup source, TargetSettings targetSettings, ILogProvider logProvider) : base(azureSubscription, ArmConst.MicrosoftNetwork, ArmConst.NetworkSecurityGroups, targetSettings, logProvider)
         {
-            _SourceNetworkSecurityGroup = source;
+            this.Source = source;
             this.SetTargetName(source.Name, targetSettings);
-
-            foreach (Arm.NetworkSecurityGroupRule sourceRule in source.Rules)
-            {
-                NetworkSecurityGroupRule targetRule = new NetworkSecurityGroupRule(sourceRule, targetSettings, this.LogProvider);
-                this.Rules.Add(targetRule);
-            }
         }
-
-        public static NetworkSecurityGroup SeekNetworkSecurityGroup(List<NetworkSecurityGroup> networkSecurityGroups, string sourceName)
-        {
-            foreach (NetworkSecurityGroup networkSecurityGroup in networkSecurityGroups)
-            {
-                if (networkSecurityGroup.SourceName == sourceName)
-                    return networkSecurityGroup;
-            }
-
-            return null;
-        }
-
 
         public List<NetworkSecurityGroupRule> Rules
         {
             get { return _Rules; }
         }
         
-        public INetworkSecurityGroup SourceNetworkSecurityGroup
-        {
-            get { return _SourceNetworkSecurityGroup; }
-        }
-
-        public String SourceName
-        {
-            get
-            {
-                if (this.SourceNetworkSecurityGroup == null)
-                    return String.Empty;
-                else
-                    return this.SourceNetworkSecurityGroup.ToString();
-            }
-        }
-
         public override string ImageKey { get { return "NetworkSecurityGroup"; } }
 
         public override string FriendlyObjectName { get { return "Network Security Group"; } }
@@ -85,6 +51,24 @@ namespace MigAz.Azure.MigrationTarget
         {
             this.TargetName = targetName.Trim().Replace(" ", String.Empty);
             this.TargetNameResult = this.TargetName + targetSettings.NetworkSecurityGroupSuffix;
+        }
+
+        public override async Task RefreshFromSource()
+        {
+            if (this.Source != null)
+            {
+                if (this.Source.GetType() == typeof(Arm.NetworkSecurityGroup))
+                {
+                    this.Rules.Clear();
+
+                    Arm.NetworkSecurityGroup armNetworkSecurityGroup = (Arm.NetworkSecurityGroup)this.Source;
+                    foreach (Arm.NetworkSecurityGroupRule sourceRule in armNetworkSecurityGroup.Rules)
+                    {
+                        NetworkSecurityGroupRule targetRule = new NetworkSecurityGroupRule(this.AzureSubscription, sourceRule, this.TargetSettings, this.LogProvider);
+                        this.Rules.Add(targetRule);
+                    }
+                }
+            }
         }
     }
 }

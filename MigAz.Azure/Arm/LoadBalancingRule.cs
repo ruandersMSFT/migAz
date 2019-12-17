@@ -69,11 +69,6 @@ namespace MigAz.Azure.Arm
             get;
             internal set;
         }
-
-        public override string ToString()
-        {
-            return this.Name;
-        }
     }
 }
 

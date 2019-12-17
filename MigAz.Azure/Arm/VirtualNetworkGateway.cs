@@ -33,19 +33,31 @@ namespace MigAz.Azure.Arm
 
         public string SkuName
         {
-            get { return (string)ResourceToken["properties"]["sku"]["name"]; }
+            get
+            {
+                if (ResourceToken["properties"] == null || ResourceToken["properties"]["sku"] == null || ResourceToken["properties"]["sku"]["name"] == null)
+                    return null;
+
+                return (string)ResourceToken["properties"]["sku"]["name"];
+            }
         }
 
         public string SkuTier
         {
-            get { return (string)ResourceToken["properties"]["sku"]["tier"]; }
+            get
+            {
+                if (ResourceToken["properties"] == null || ResourceToken["properties"]["sku"] == null || ResourceToken["properties"]["sku"]["tier"] == null)
+                    return null;
+
+                return (string)ResourceToken["properties"]["sku"]["tier"];
+            }
         }
-        public int SkuCapacity
+        public int? SkuCapacity
         {
             get
             {
-                if (ResourceToken["properties"]["sku"]["capacity"] == null)
-                    return 2; // Default?
+                if (ResourceToken["properties"] == null || ResourceToken["properties"]["sku"] == null || ResourceToken["properties"]["sku"]["capacity"] == null)
+                    return null;
 
                 return Convert.ToInt16((string)ResourceToken["properties"]["sku"]["capacity"]);
             }
@@ -57,27 +69,46 @@ namespace MigAz.Azure.Arm
 
         public string GatewayType
         {
-            get { return (string)ResourceToken["properties"]["gatewayType"]; }
+            get
+            {
+                if (ResourceToken["properties"] == null || ResourceToken["properties"]["gatewayType"] == null)
+                    return null;
+
+                return (string)ResourceToken["properties"]["gatewayType"];
+            }
         }
         public string VpnType
         {
-            get { return (string)ResourceToken["properties"]["vpnType"]; }
+            get
+            {
+                if (ResourceToken["properties"] == null || ResourceToken["properties"]["vpnType"] == null)
+                    return null;
+
+                return (string)ResourceToken["properties"]["vpnType"];
+            }
         }
-        public bool EnableBgp
+        public bool? EnableBgp
         {
-            get { return Convert.ToBoolean((string)ResourceToken["properties"]["enableBgp"]); }
+            get
+            {
+                if (ResourceToken["properties"] == null || ResourceToken["properties"]["enableBgp"] == null)
+                    return null;
+
+                return Convert.ToBoolean((string)ResourceToken["properties"]["enableBgp"]);
+            }
         }
-        public bool ActiveActive
+        public bool? ActiveActive
         {
-            get { return Convert.ToBoolean((string)ResourceToken["properties"]["activeActive"]); }
+            get
+            {
+                if (ResourceToken["properties"] == null || ResourceToken["properties"]["activeActive"] == null)
+                    return null;
+
+                return Convert.ToBoolean((string)ResourceToken["properties"]["activeActive"]);
+            }
         }
         #endregion
 
-
-        public override string ToString()
-        {
-            return this.Name;
-        }
     }
 }
 

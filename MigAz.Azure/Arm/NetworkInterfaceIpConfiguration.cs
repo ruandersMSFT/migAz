@@ -25,20 +25,6 @@ namespace MigAz.Azure.Arm
 
         internal override async Task InitializeChildrenAsync()
         {
-            _VirtualNetwork = this.AzureSubscription.GetAzureARMVirtualNetwork(this.SubnetId);
-
-            if (_VirtualNetwork != null)
-            {
-                foreach (Subnet subnet in _VirtualNetwork.Subnets)
-                {
-                    if (subnet.Name == this.SubnetName)
-                    {
-                        _Subnet = subnet;
-                        break;
-                    }
-                }
-            }
-
             if (this.PublicIpAddressId != String.Empty)
             {
                 _PublicIP = await this.AzureSubscription.GetAzureARMPublicIP(this.PublicIpAddressId);
@@ -64,18 +50,22 @@ namespace MigAz.Azure.Arm
 
         
 
-        public string VirtualNetworkName
+        public string VirtualNetworkId
         {
-            get { return SubnetId.Split('/')[8]; }
+            get
+            {
+                if (this.SubnetId.ToLower().Contains("/subnets/"))
+                    return this.SubnetId.Substring(0, this.SubnetId.ToLower().IndexOf("/subnets/"));
+                else
+                    return String.Empty;
+            }
         }
 
-        public string SubnetName
-        {
-            get { return SubnetId.Split('/')[10]; }
-        }
+        //public string SubnetName
+        //{
+        //    get { return SubnetId.Split('/')[10]; }
+        //}
 
-        public VirtualNetwork VirtualNetwork => _VirtualNetwork;
-        public Subnet Subnet => _Subnet;
         public BackEndAddressPool BackEndAddressPool
         {
             get;

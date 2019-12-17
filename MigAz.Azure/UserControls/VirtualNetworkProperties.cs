@@ -31,16 +31,16 @@ namespace MigAz.Azure.UserControls
                 _VirtualNetwork = targetVirtualNetwork;
                 _TargetTreeView = targetTreeView;
 
-                if (targetVirtualNetwork.SourceVirtualNetwork != null)
+                if (targetVirtualNetwork.Source != null)
                 {
-                    if (targetVirtualNetwork.SourceVirtualNetwork.GetType() == typeof(Azure.Asm.VirtualNetwork))
+                    if (targetVirtualNetwork.Source.GetType() == typeof(Azure.Asm.VirtualNetwork))
                     {
-                        Azure.Asm.VirtualNetwork asmVirtualNetwork = (Azure.Asm.VirtualNetwork)targetVirtualNetwork.SourceVirtualNetwork;
+                        Azure.Asm.VirtualNetwork asmVirtualNetwork = (Azure.Asm.VirtualNetwork)targetVirtualNetwork.Source;
                         lblVNetName.Text = asmVirtualNetwork.Name;
                     }
-                    else if (targetVirtualNetwork.SourceVirtualNetwork.GetType() == typeof(Azure.Arm.VirtualNetwork))
+                    else if (targetVirtualNetwork.Source.GetType() == typeof(Azure.Arm.VirtualNetwork))
                     {
-                        Azure.Arm.VirtualNetwork armVirtualNetwork = (Azure.Arm.VirtualNetwork)targetVirtualNetwork.SourceVirtualNetwork;
+                        Azure.Arm.VirtualNetwork armVirtualNetwork = (Azure.Arm.VirtualNetwork)targetVirtualNetwork.Source;
                         lblVNetName.Text = armVirtualNetwork.Name;
                     }
                 }

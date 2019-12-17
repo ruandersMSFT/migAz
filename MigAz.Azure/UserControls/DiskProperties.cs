@@ -90,22 +90,24 @@ namespace MigAz.Azure.UserControls
             txtKeyEncryptionKeySourceVaultId.Text = _TargetDisk.KeyEncryptionKeySourceVaultId;
 
             lblAsmStorageAccount.Text = String.Empty;
-            if (_TargetDisk.SourceDisk != null)
+            if (_TargetDisk.Source != null)
             {
-                lblDiskName.Text = _TargetDisk.TargetName;
-                lblHostCaching.Text = _TargetDisk.SourceDisk.HostCaching;
-                lblLUN.Text = _TargetDisk.SourceDisk.Lun.ToString();
-                lblSourceSizeGb.Text = _TargetDisk.SourceDisk.DiskSizeGb.ToString();
+                IDisk sourceDisk = (IDisk)_TargetDisk.Source;
 
-                if (_TargetDisk.SourceDisk.GetType() == typeof(Azure.Asm.Disk))
+                lblDiskName.Text = _TargetDisk.TargetName;
+                lblHostCaching.Text = sourceDisk.HostCaching;
+                lblLUN.Text = sourceDisk.Lun.ToString();
+                lblSourceSizeGb.Text = sourceDisk.DiskSizeGb.ToString();
+
+                if (sourceDisk.GetType() == typeof(Azure.Asm.Disk))
                 {
-                    Azure.Asm.Disk asmDisk = (Azure.Asm.Disk)_TargetDisk.SourceDisk;
+                    Azure.Asm.Disk asmDisk = (Azure.Asm.Disk)sourceDisk;
                     if (asmDisk.SourceStorageAccount != null)
                         lblAsmStorageAccount.Text = asmDisk.SourceStorageAccount.Name;
                 }
-                else if (_TargetDisk.SourceDisk.GetType() == typeof(Azure.Arm.ClassicDisk))
+                else if (sourceDisk.GetType() == typeof(Azure.Arm.ClassicDisk))
                 {
-                    Azure.Arm.ClassicDisk armDisk = (Azure.Arm.ClassicDisk)_TargetDisk.SourceDisk;
+                    Azure.Arm.ClassicDisk armDisk = (Azure.Arm.ClassicDisk)sourceDisk;
                     if (armDisk.SourceStorageAccount != null)
                         lblAsmStorageAccount.Text = armDisk.SourceStorageAccount.Name;
                 }
@@ -186,7 +188,7 @@ namespace MigAz.Azure.UserControls
                 }
                 else
                 {
-                    _TargetDisk.TargetStorage = new ManagedDiskStorage(_TargetDisk.SourceDisk);
+                    _TargetDisk.TargetStorage = new ManagedDiskStorage((IDisk)_TargetDisk.Source);
                     _TargetTreeView.TransitionToManagedDisk(_TargetDisk);
 
                     int comboBoxIndex = cmbTargetStorage.Items.IndexOf(_TargetDisk.TargetStorage.StorageAccountType.ToString());

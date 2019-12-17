@@ -29,11 +29,6 @@ namespace MigAz.Azure.Arm
             this._LocationToken = locationToken;
         }
 
-        internal async Task InitializeChildrenAsync()
-        {
-            await this.InitializeARMVMSizes();
-        }
-
         #endregion
 
         #region Properties
@@ -128,10 +123,10 @@ namespace MigAz.Azure.Arm
             azureContext.StatusProvider.UpdateStatus("Ready");
         }
 
-        public VMSize SeekVmSize(string name)
+        public async Task<VMSize> SeekVmSize(string name)
         {
             if (_ArmVmSizes == null)
-                throw new Exception("You must call InitializeChildrenAsync before seeking a VM Size.");
+                await this.InitializeARMVMSizes();
 
             return _ArmVmSizes.Where(a => a.Name == name).FirstOrDefault();
         }

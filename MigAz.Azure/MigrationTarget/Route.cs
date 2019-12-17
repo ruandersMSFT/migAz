@@ -21,9 +21,9 @@ namespace MigAz.Azure.MigrationTarget
 
         #region Constructors
 
-        private Route() : base(String.Empty, String.Empty, null) { }
+        private Route() : base(null, String.Empty, String.Empty, null, null) { }
 
-        public Route(IRoute route, TargetSettings targetSettings, ILogProvider logProvider) : base(String.Empty, String.Empty, logProvider)
+        public Route(AzureSubscription azureSubscription, IRoute route, TargetSettings targetSettings, ILogProvider logProvider) : base(azureSubscription, String.Empty, String.Empty, targetSettings, logProvider)
         {
             _Source = route;
 
@@ -64,10 +64,6 @@ namespace MigAz.Azure.MigrationTarget
             }
         }
 
-        public String SourceName
-        {
-            get { return String.Empty; }
-        }
         public override string ImageKey { get { return "Route"; } }
 
         public override string FriendlyObjectName { get { return "Route"; } }
@@ -78,6 +74,11 @@ namespace MigAz.Azure.MigrationTarget
         {
             this.TargetName = targetName.Trim().Replace(" ", String.Empty);
             this.TargetNameResult = this.TargetName;
+        }
+
+        public override async Task RefreshFromSource()
+        {
+            //throw new NotImplementedException();
         }
     }
 }

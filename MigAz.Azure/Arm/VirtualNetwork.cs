@@ -16,63 +16,43 @@ namespace MigAz.Azure.Arm
 {
     public class VirtualNetwork : ArmResource, IVirtualNetwork, IMigrationVirtualNetwork
     {
-        private List<VirtualNetworkGateway> ResourceTokenGateways = new List<VirtualNetworkGateway>();
-        private List<ISubnet> _Subnets = new List<ISubnet>();
-        private List<string> _AddressPrefixes = new List<string>();
-        private List<string> _DnsServers = new List<string>();
+        private List<ISubnet> _Subnets;
 
         private VirtualNetwork() : base(null, null) { }
 
-        public VirtualNetwork(AzureSubscription azureSubscription, JToken resourceToken) : base(azureSubscription, resourceToken)
+        private VirtualNetwork(AzureSubscription azureSubscription, JToken resourceToken) : base(azureSubscription, resourceToken)
         {
-            var subnets = from vnet in ResourceToken["properties"]["subnets"]
-                          select vnet;
-
-            foreach (var subnet in subnets)
-            {
-                Subnet armSubnet = new Subnet(this, subnet);
-                _Subnets.Add(armSubnet);
-            }
-
-            var addressPrefixes = from vnet in ResourceToken["properties"]["addressSpace"]["addressPrefixes"]
-                                  select vnet;
-
-            foreach (var addressPrefix in addressPrefixes)
-            {
-                _AddressPrefixes.Add(addressPrefix.ToString());
-            }
-
-            if (ResourceToken["properties"] != null)
-            {
-                if (ResourceToken["properties"]["dhcpOptions"] != null)
-                {
-                    if (ResourceToken["properties"]["dhcpOptions"]["dnsServers"] != null)
-                    {
-                        var dnsPrefixes = from vnet in ResourceToken["properties"]["dhcpOptions"]["dnsServers"]
-                                          select vnet;
-
-                        foreach (var dnsPrefix in dnsPrefixes)
-                        {
-                            _DnsServers.Add(dnsPrefix.ToString());
-                        }
-                    }
-                }
-            }
         }
 
-        public new async Task InitializeChildrenAsync()
+        public static Task<VirtualNetwork> CreateAsync(AzureSubscription azureSubscription, JToken resourceToken)
+        {
+            var ret = new VirtualNetwork(azureSubscription, resourceToken);
+            return ret.InitializeAsync();
+        }
+
+        private async Task<VirtualNetwork> InitializeAsync()
         {
             await base.InitializeChildrenAsync();
 
-            foreach (Subnet subnet in this.Subnets)
+            _Subnets = new List<ISubnet>();
+
+            if (ResourceToken["properties"]["subnets"] != null)
             {
-                await subnet.InitializeChildrenAsync();
+                var subnets = from vnet in ResourceToken["properties"]["subnets"]
+                              select vnet;
+
+                foreach (var subnet in subnets)
+                {
+                    Subnet armSubnet = await Subnet.CreateAsync(this.AzureSubscription, this, subnet);
+                    _Subnets.Add(armSubnet);
+                }
             }
+
+            return this;
         }
 
         #region Properties
 
-        public string Type => (string)ResourceToken["type"];
         public ISubnet GatewaySubnet
         {
             get
@@ -86,24 +66,71 @@ namespace MigAz.Azure.Arm
                 return null;
             }
         }
-        public List<ISubnet> Subnets => _Subnets;
-        public List<string> AddressPrefixes => _AddressPrefixes;
-        public List<string> DnsServers => _DnsServers;
-
-        public List<VirtualNetworkGateway> VirtualNetworkGateways
+        public List<ISubnet> Subnets
         {
-            get { return ResourceTokenGateways; }
+            get
+            {
+                return _Subnets;
+            }
+        }
+        public List<string> AddressPrefixes
+        {
+            get
+            {
+                List<string> addressPrefixList = new List<string>();
+
+                if (ResourceToken["properties"] != null)
+                {
+                    if (ResourceToken["properties"]["addressSpace"] != null)
+                    {
+                        if (ResourceToken["properties"]["addressSpace"]["addressPrefixes"] != null)
+                        {
+                            var addressPrefixes = from vnet in ResourceToken["properties"]["addressSpace"]["addressPrefixes"]
+                                                  select vnet;
+
+                            foreach (var addressPrefix in addressPrefixes)
+                            {
+                                addressPrefixList.Add(addressPrefix.ToString());
+                            }
+                        }
+                    }
+
+                }
+
+                return addressPrefixList;
+            }
+        }
+        public List<string> DnsServers
+        {
+            get
+            {
+                List<string> dnsServerList = new List<string>();
+
+                if (ResourceToken["properties"] != null)
+                {
+                    if (ResourceToken["properties"]["dhcpOptions"] != null)
+                    {
+                        if (ResourceToken["properties"]["dhcpOptions"]["dnsServers"] != null)
+                        {
+                            var dnsPrefixes = from vnet in ResourceToken["properties"]["dhcpOptions"]["dnsServers"]
+                                              select vnet;
+
+                            foreach (var dnsPrefix in dnsPrefixes)
+                            {
+                                dnsServerList.Add(dnsPrefix.ToString());
+                            }
+                        }
+                    }
+                }
+
+                return dnsServerList;
+            }
         }
 
         #endregion
 
         #region Methods
 
-        public override string ToString()
-        {
-            return this.Name;
-        }
-        
         public async Task<(bool isAvailable, List<String> availableIps)> IsIpAddressAvailable(string ipAddress)
         {
             //https://docs.microsoft.com/en-us/rest/api/virtualnetwork/virtualnetworks/checkipaddressavailability

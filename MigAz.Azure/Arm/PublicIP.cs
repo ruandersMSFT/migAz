@@ -17,18 +17,43 @@ namespace MigAz.Azure.Arm
         {
         }
 
-        public string IpAddress => (string)this.ResourceToken["properties"]["ipAddress"];
-        public string PublicIPAddressVersion => (string)this.ResourceToken["properties"]["publicIPAddressVersion"];
-        public string PublicIPAllocationMethod => (string)this.ResourceToken["properties"]["publicIPAllocationMethod"];
-        public string IdleTimeoutInMinutes => (string)this.ResourceToken["properties"]["idleTimeoutInMinutes"];
+        public string IpAddress
+        {
+            get
+            {
+                return (string)ResourceToken.SelectToken("properties.ipAddress");
+            }
+        }
+
+        public string PublicIPAddressVersion
+        {
+            get
+            {
+                return (string)ResourceToken.SelectToken("properties.publicIPAddressVersion");
+            }
+        }
+
+        public string PublicIPAllocationMethod
+        {
+            get
+            {
+                return (string)ResourceToken.SelectToken("properties.publicIPAllocationMethod");
+            }
+        }
+
+        public string IdleTimeoutInMinutes
+        {
+            get
+            {
+                return (string)ResourceToken.SelectToken("properties.idleTimeoutInMinutes");
+            }
+        }
+
         public string DomainNameLabel
         {
             get
             {
-                if (this.ResourceToken["properties"]["dnsSettings"] == null || this.ResourceToken["properties"]["dnsSettings"]["domainNameLabel"] == null)
-                    return String.Empty;
-
-                return (string) this.ResourceToken["properties"]["dnsSettings"]["domainNameLabel"];
+                return (string)ResourceToken.SelectToken("properties.dnsSettings.domainNameLabel");
             }
         }
 
@@ -36,10 +61,7 @@ namespace MigAz.Azure.Arm
         {
             get
             {
-                if (this.ResourceToken["properties"]["ipConfiguration"] == null || this.ResourceToken["properties"]["ipConfiguration"]["id"] == null)
-                    return String.Empty;
-
-                return (string)this.ResourceToken["properties"]["ipConfiguration"]["id"];
+                return (string)ResourceToken.SelectToken("properties.ipConfiguration.id");
             }
         }
 
@@ -47,16 +69,8 @@ namespace MigAz.Azure.Arm
         {
             get
             {
-                if (this.ResourceToken["properties"]["dnsSettings"] == null || this.ResourceToken["properties"]["dnsSettings"]["fqdn"] == null)
-                    return String.Empty;
-
-                return (string)this.ResourceToken["properties"]["dnsSettings"]["fqdn"];
+                return (string)ResourceToken.SelectToken("properties.dnsSettings.fqdn");
             }
-        }
-
-        public override string ToString()
-        {
-            return this.Name;
         }
     }
 }

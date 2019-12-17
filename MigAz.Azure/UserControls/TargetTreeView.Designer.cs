@@ -102,12 +102,12 @@ namespace MigAz.Azure.UserControls
             this.virtualNetworkMenuStrip.Name = "virtualNetworkMenuStrip";
             this.virtualNetworkMenuStrip.Size = new System.Drawing.Size(504, 70);
             // 
-            // asdfasdfToolStripMenuItem
+            // NewSubnetToolStripMenuItem
             // 
-            this.asdfasdfToolStripMenuItem.Name = "asdfasdfToolStripMenuItem";
+            this.asdfasdfToolStripMenuItem.Name = "NewSubnetToolStripMenuItem";
             this.asdfasdfToolStripMenuItem.Size = new System.Drawing.Size(503, 30);
             this.asdfasdfToolStripMenuItem.Text = "New &Subnet";
-            this.asdfasdfToolStripMenuItem.Click += new System.EventHandler(this.asdfasdfToolStripMenuItem_Click);
+            this.asdfasdfToolStripMenuItem.Click += new System.EventHandler(this.NewSubnetToolStripMenuItem_Click);
             // 
             // toolStripMenuItem1
             // 
