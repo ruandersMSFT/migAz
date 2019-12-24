@@ -62,11 +62,11 @@ namespace MigAz.Azure
             }
         }
 
-        public async Task<Microsoft.Identity.Client.AuthenticationResult> GetToken(string resourceUrl, Guid azureAdTenantGuid, PromptBehavior promptBehavior = PromptBehavior.Auto)
+        public async Task<Microsoft.Identity.Client.AuthenticationResult> GetToken(string resourceUrl, string permission, PromptBehavior promptBehavior = PromptBehavior.Auto)
         {
-            _LogProvider.WriteLog("GetToken", "Start token request : Azure AD Tenant ID " + azureAdTenantGuid.ToString());
+            _LogProvider.WriteLog("GetToken", "Start token request");
             _LogProvider.WriteLog("GetToken", " - Resource Url: " + resourceUrl);
-            _LogProvider.WriteLog("GetToken", " - Azure AD Tenant Guid: " + azureAdTenantGuid.ToString());
+            _LogProvider.WriteLog("GetToken", " - Permission: " + permission);
             _LogProvider.WriteLog("GetToken", " - Prompt Behavior: " + promptBehavior.ToString());
             if (_LastAccount == null)
             {
@@ -77,7 +77,7 @@ namespace MigAz.Azure
                 _LogProvider.WriteLog("GetToken", " - Required User: " + _LastAccount.Username);
             }
 
-            string[] scopes = new string[] { resourceUrl + "user_impersonation" };
+            string[] scopes = new string[] { resourceUrl + permission };
 
             if (app == null)
             {
@@ -109,38 +109,17 @@ namespace MigAz.Azure
             }
             catch (MsalUiRequiredException)
             {
-                DefaultOsBrowserWebUi asdf = new DefaultOsBrowserWebUi();
+                DefaultOsBrowserWebUi defaultOsBrowserWebUi = new DefaultOsBrowserWebUi();
 
                 result = await app.AcquireTokenInteractive(scopes)
-                    .WithCustomWebUi(asdf)
+                    .WithCustomWebUi(defaultOsBrowserWebUi)
                     .ExecuteAsync();
-
             }
 
             if (result == null)
                 _LastAccount = null;
             else
                 _LastAccount = result.Account;
-
-            //AuthenticationContext tenantAuthenticationContext = GetTenantAuthenticationContext(azureAdTenantGuid);
-
-            //PlatformParameters platformParams = new PlatformParameters(promptBehavior, null);
-            //Microsoft.IdentityModel.Clients.ActiveDirectory.AuthenticationResult authenticationResult;
-
-            //if (_LastAccount == null)
-            //{
-            //    authenticationResult = await tenantAuthenticationContext.AcquireTokenAsync(resourceUrl, strClientId, new Uri(strReturnUrl), platformParams);
-            //}
-            //else
-            //{
-            //    UserIdentifier userIdentifier = new UserIdentifier(_LastAccount.Username, UserIdentifierType.RequiredDisplayableId);
-            //    authenticationResult = await tenantAuthenticationContext.AcquireTokenAsync(resourceUrl, strClientId, new Uri(strReturnUrl), platformParams, userIdentifier);
-            //}
-
-            ////if (authenticationResult == null)
-            ////    _LastAccount = null;
-            ////else
-            ////    _LastAccount = authenticationResult.;
 
             _LogProvider.WriteLog("GetToken", "End token request");
             
@@ -182,7 +161,6 @@ namespace MigAz.Azure
 
             _LogProvider.WriteLog("LoginAzureProvider", "End token request");
 
-            //return authenticationResult;
             return result;
         }
 
