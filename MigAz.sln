@@ -1,9 +1,9 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 16
-VisualStudioVersion = 16.0.29709.97
+VisualStudioVersion = 16.0.29609.76
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "MigAz.Azure", "MigAz.Azure\MigAz.Azure.csproj", "{A794A00C-299A-4E82-BD35-2213E091B8A8}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MigAz.Azure", "MigAz.Azure\MigAz.Azure.csproj", "{A794A00C-299A-4E82-BD35-2213E091B8A8}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MigAz", "MigAz\MigAz.csproj", "{90C588A6-C9CE-41BD-81EB-703A63AEF46C}"
 EndProject

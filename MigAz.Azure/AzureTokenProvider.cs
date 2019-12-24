@@ -25,7 +25,6 @@ namespace MigAz.Azure
         private AuthenticationContext _AuthenticationContext;
         private Dictionary<Guid, AuthenticationContext> _TenantAuthenticationContext = new Dictionary<Guid, AuthenticationContext>();
         private IAccount _LastAccount;
-        IPublicClientApplication app;
 
         private AzureTokenProvider() { }
 
@@ -62,11 +61,11 @@ namespace MigAz.Azure
             }
         }
 
-        public async Task<Microsoft.Identity.Client.AuthenticationResult> GetToken(string resourceUrl, string permission, PromptBehavior promptBehavior = PromptBehavior.Auto)
+        public async Task<Microsoft.Identity.Client.AuthenticationResult> GetToken(string resourceUrl, Guid azureAdTenantGuid, PromptBehavior promptBehavior = PromptBehavior.Auto)
         {
-            _LogProvider.WriteLog("GetToken", "Start token request");
+            _LogProvider.WriteLog("GetToken", "Start token request : Azure AD Tenant ID " + azureAdTenantGuid.ToString());
             _LogProvider.WriteLog("GetToken", " - Resource Url: " + resourceUrl);
-            _LogProvider.WriteLog("GetToken", " - Permission: " + permission);
+            _LogProvider.WriteLog("GetToken", " - Azure AD Tenant Guid: " + azureAdTenantGuid.ToString());
             _LogProvider.WriteLog("GetToken", " - Prompt Behavior: " + promptBehavior.ToString());
             if (_LastAccount == null)
             {
@@ -77,49 +76,53 @@ namespace MigAz.Azure
                 _LogProvider.WriteLog("GetToken", " - Required User: " + _LastAccount.Username);
             }
 
-            string[] scopes = new string[] { resourceUrl + permission };
 
-            if (app == null)
-            {
+            string[] scopes = new string[] { "user.read" };
 
-                PublicClientApplicationOptions options = new PublicClientApplicationOptions();
-                options.AzureCloudInstance = this.AzureEnvironment.GetAzureCloudInstance();
-                options.ClientId = strClientId;
-                options.RedirectUri = strReturnUrl;
+            PublicClientApplicationOptions options = new PublicClientApplicationOptions();
+            options.AzureCloudInstance = AzureCloudInstance.AzurePublic;
+            options.ClientId = strClientId;
+            options.RedirectUri = strReturnUrl;
 
-                //if (azureAdTenantGuid != Guid.Empty)
-                //    options.TenantId = azureAdTenantGuid.ToString();
-                //else
-                options.AadAuthorityAudience = AadAuthorityAudience.AzureAdAndPersonalMicrosoftAccount;
+            if (azureAdTenantGuid != Guid.Empty)
+                options.TenantId = azureAdTenantGuid.ToString();
+            else
+                options.AadAuthorityAudience = AadAuthorityAudience.AzureAdMultipleOrgs;
 
-                this.app = PublicClientApplicationBuilder
-                    .CreateWithApplicationOptions(options)
-                    .WithRedirectUri("http://localhost")
-                    .Build();
+            IPublicClientApplication app = PublicClientApplicationBuilder
+                .CreateWithApplicationOptions(options)
+                .WithRedirectUri("http://localhost")
+                .Build();
 
-            }
-
-            var accounts = await app.GetAccountsAsync();
-
-            Microsoft.Identity.Client.AuthenticationResult result;
-            try
-            {
-                result = await app.AcquireTokenSilent(scopes, accounts.FirstOrDefault())
-                    .ExecuteAsync();
-            }
-            catch (MsalUiRequiredException)
-            {
-                DefaultOsBrowserWebUi defaultOsBrowserWebUi = new DefaultOsBrowserWebUi();
-
-                result = await app.AcquireTokenInteractive(scopes)
-                    .WithCustomWebUi(defaultOsBrowserWebUi)
-                    .ExecuteAsync();
-            }
+            DefaultOsBrowserWebUi asdf = new DefaultOsBrowserWebUi();
+            Microsoft.Identity.Client.AuthenticationResult result = await app.AcquireTokenInteractive(scopes)
+                .WithCustomWebUi(asdf)
+                .ExecuteAsync();
 
             if (result == null)
                 _LastAccount = null;
             else
                 _LastAccount = result.Account;
+
+            //AuthenticationContext tenantAuthenticationContext = GetTenantAuthenticationContext(azureAdTenantGuid);
+
+            //PlatformParameters platformParams = new PlatformParameters(promptBehavior, null);
+            //Microsoft.IdentityModel.Clients.ActiveDirectory.AuthenticationResult authenticationResult;
+
+            //if (_LastAccount == null)
+            //{
+            //    authenticationResult = await tenantAuthenticationContext.AcquireTokenAsync(resourceUrl, strClientId, new Uri(strReturnUrl), platformParams);
+            //}
+            //else
+            //{
+            //    UserIdentifier userIdentifier = new UserIdentifier(_LastAccount.Username, UserIdentifierType.RequiredDisplayableId);
+            //    authenticationResult = await tenantAuthenticationContext.AcquireTokenAsync(resourceUrl, strClientId, new Uri(strReturnUrl), platformParams, userIdentifier);
+            //}
+
+            ////if (authenticationResult == null)
+            ////    _LastAccount = null;
+            ////else
+            ////    _LastAccount = authenticationResult.;
 
             _LogProvider.WriteLog("GetToken", "End token request");
             
@@ -134,25 +137,21 @@ namespace MigAz.Azure
 
             string[] scopes = new string[] { "user.read" };
 
-            if (this.app == null)
-            {
-                PublicClientApplicationOptions options = new PublicClientApplicationOptions();
-                options.AzureCloudInstance = this.AzureEnvironment.GetAzureCloudInstance();
-                options.AadAuthorityAudience = AadAuthorityAudience.AzureAdAndPersonalMicrosoftAccount;
-                options.ClientId = strClientId;
-                options.RedirectUri = strReturnUrl;
+            PublicClientApplicationOptions options = new PublicClientApplicationOptions();
+            options.AzureCloudInstance = AzureCloudInstance.AzurePublic;
+            options.AadAuthorityAudience = AadAuthorityAudience.AzureAdMultipleOrgs;
+            options.ClientId = strClientId;
+            options.RedirectUri = strReturnUrl;
 
-                this.app = PublicClientApplicationBuilder
-                    .CreateWithApplicationOptions(options)
-                    .WithRedirectUri("http://localhost")
-                    .Build();
-            }
+            IPublicClientApplication app = PublicClientApplicationBuilder
+                .CreateWithApplicationOptions(options)
+                .WithRedirectUri("http://localhost")
+                .Build();
 
             DefaultOsBrowserWebUi asdf = new DefaultOsBrowserWebUi();
             Microsoft.Identity.Client.AuthenticationResult result = await app.AcquireTokenInteractive(scopes)
                 .WithCustomWebUi(asdf)
                 .ExecuteAsync();
-            
 
             if (result == null)
                 _LastAccount = null;
@@ -161,6 +160,7 @@ namespace MigAz.Azure
 
             _LogProvider.WriteLog("LoginAzureProvider", "End token request");
 
+            //return authenticationResult;
             return result;
         }
 

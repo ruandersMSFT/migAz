@@ -214,7 +214,7 @@ namespace MigAz.Azure
             if (this.TokenProvider == null)
                 throw new ArgumentNullException("TokenProvider Context is null.  Unable to call Azure API without TokenProvider.");
 
-            Microsoft.Identity.Client.AuthenticationResult tenantAuthenticationResult = await this.TokenProvider.GetToken(this.AzureEnvironment.ResourceManagerEndpoint, "user_impersonation");
+            Microsoft.Identity.Client.AuthenticationResult tenantAuthenticationResult = await this.TokenProvider.GetToken(this.AzureEnvironment.ResourceManagerEndpoint, Guid.Empty);
 
             String tenantUrl = this.AzureEnvironment.ResourceManagerEndpoint + "tenants?api-version=2015-01-01";
             this.StatusProvider.UpdateStatus("BUSY: Getting Tenants...");
