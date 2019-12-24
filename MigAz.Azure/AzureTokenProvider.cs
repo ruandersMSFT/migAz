@@ -25,6 +25,7 @@ namespace MigAz.Azure
         private AuthenticationContext _AuthenticationContext;
         private Dictionary<Guid, AuthenticationContext> _TenantAuthenticationContext = new Dictionary<Guid, AuthenticationContext>();
         private IAccount _LastAccount;
+        IPublicClientApplication app;
 
         private AzureTokenProvider() { }
 
@@ -76,28 +77,45 @@ namespace MigAz.Azure
                 _LogProvider.WriteLog("GetToken", " - Required User: " + _LastAccount.Username);
             }
 
-
             string[] scopes = new string[] { resourceUrl + "user_impersonation" };
 
-            PublicClientApplicationOptions options = new PublicClientApplicationOptions();
-            options.AzureCloudInstance = this.AzureEnvironment.GetAzureCloudInstance();
-            options.ClientId = strClientId;
-            options.RedirectUri = strReturnUrl;
+            if (app == null)
+            {
 
-            if (azureAdTenantGuid != Guid.Empty)
-                options.TenantId = azureAdTenantGuid.ToString();
-            else
+                PublicClientApplicationOptions options = new PublicClientApplicationOptions();
+                options.AzureCloudInstance = this.AzureEnvironment.GetAzureCloudInstance();
+                options.ClientId = strClientId;
+                options.RedirectUri = strReturnUrl;
+
+                //if (azureAdTenantGuid != Guid.Empty)
+                //    options.TenantId = azureAdTenantGuid.ToString();
+                //else
                 options.AadAuthorityAudience = AadAuthorityAudience.AzureAdAndPersonalMicrosoftAccount;
 
-            IPublicClientApplication app = PublicClientApplicationBuilder
-                .CreateWithApplicationOptions(options)
-                .WithRedirectUri("http://localhost")
-                .Build();
+                this.app = PublicClientApplicationBuilder
+                    .CreateWithApplicationOptions(options)
+                    .WithRedirectUri("http://localhost")
+                    .Build();
 
-            DefaultOsBrowserWebUi asdf = new DefaultOsBrowserWebUi();
-            Microsoft.Identity.Client.AuthenticationResult result = await app.AcquireTokenInteractive(scopes)
-                .WithCustomWebUi(asdf)
-                .ExecuteAsync();
+            }
+
+            var accounts = await app.GetAccountsAsync();
+
+            Microsoft.Identity.Client.AuthenticationResult result;
+            try
+            {
+                result = await app.AcquireTokenSilent(scopes, accounts.FirstOrDefault())
+                    .ExecuteAsync();
+            }
+            catch (MsalUiRequiredException)
+            {
+                DefaultOsBrowserWebUi asdf = new DefaultOsBrowserWebUi();
+
+                result = await app.AcquireTokenInteractive(scopes)
+                    .WithCustomWebUi(asdf)
+                    .ExecuteAsync();
+
+            }
 
             if (result == null)
                 _LastAccount = null;
@@ -137,21 +155,25 @@ namespace MigAz.Azure
 
             string[] scopes = new string[] { "user.read" };
 
-            PublicClientApplicationOptions options = new PublicClientApplicationOptions();
-            options.AzureCloudInstance = this.AzureEnvironment.GetAzureCloudInstance();
-            options.AadAuthorityAudience = AadAuthorityAudience.AzureAdAndPersonalMicrosoftAccount;
-            options.ClientId = strClientId;
-            options.RedirectUri = strReturnUrl;
+            if (this.app == null)
+            {
+                PublicClientApplicationOptions options = new PublicClientApplicationOptions();
+                options.AzureCloudInstance = this.AzureEnvironment.GetAzureCloudInstance();
+                options.AadAuthorityAudience = AadAuthorityAudience.AzureAdAndPersonalMicrosoftAccount;
+                options.ClientId = strClientId;
+                options.RedirectUri = strReturnUrl;
 
-            IPublicClientApplication app = PublicClientApplicationBuilder
-                .CreateWithApplicationOptions(options)
-                .WithRedirectUri("http://localhost")
-                .Build();
+                this.app = PublicClientApplicationBuilder
+                    .CreateWithApplicationOptions(options)
+                    .WithRedirectUri("http://localhost")
+                    .Build();
+            }
 
             DefaultOsBrowserWebUi asdf = new DefaultOsBrowserWebUi();
             Microsoft.Identity.Client.AuthenticationResult result = await app.AcquireTokenInteractive(scopes)
                 .WithCustomWebUi(asdf)
                 .ExecuteAsync();
+            
 
             if (result == null)
                 _LastAccount = null;
