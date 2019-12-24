@@ -1,7 +1,6 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
-using Microsoft.IdentityModel.Clients.ActiveDirectory;
 using MigAz.Azure.Interface;
 using MigAz.Azure.Core;
 using MigAz.Azure.Core.Interface;
@@ -10,6 +9,8 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using Microsoft.Identity.Client;
+using Microsoft.IdentityModel.Clients.ActiveDirectory;
 
 namespace MigAz.Azure
 {
@@ -213,7 +214,7 @@ namespace MigAz.Azure
             if (this.TokenProvider == null)
                 throw new ArgumentNullException("TokenProvider Context is null.  Unable to call Azure API without TokenProvider.");
 
-            AuthenticationResult tenantAuthenticationResult = await this.TokenProvider.GetToken(this.AzureEnvironment.ResourceManagerEndpoint, Guid.Empty);
+            Microsoft.Identity.Client.AuthenticationResult tenantAuthenticationResult = await this.TokenProvider.GetToken(this.AzureEnvironment.ResourceManagerEndpoint, Guid.Empty);
 
             String tenantUrl = this.AzureEnvironment.ResourceManagerEndpoint + "tenants?api-version=2015-01-01";
             this.StatusProvider.UpdateStatus("BUSY: Getting Tenants...");

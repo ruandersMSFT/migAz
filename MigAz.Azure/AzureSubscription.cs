@@ -14,8 +14,8 @@ using System.Xml;
 using System.Linq;
 using MigAz.Azure.Core.ArmTemplate;
 using System.Xml.Linq;
-using Microsoft.IdentityModel.Clients.ActiveDirectory;
 using MigAz.Azure.Core;
+using Microsoft.Identity.Client;
 
 namespace MigAz.Azure
 {

@@ -7,9 +7,9 @@ using System.Collections.Generic;
 using System.Threading.Tasks;
 using MigAz.Azure.Core.Interface;
 using MigAz.Azure.Core.ArmTemplate;
-using Microsoft.IdentityModel.Clients.ActiveDirectory;
 using System;
 using System.Linq;
+using Microsoft.Identity.Client;
 
 namespace MigAz.Azure.Arm
 {

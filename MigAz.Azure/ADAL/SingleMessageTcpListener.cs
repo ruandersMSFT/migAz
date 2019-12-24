@@ -26,7 +26,7 @@ namespace MigAz.Azure.ADAL
 
         public SingleMessageTcpListener(int port)
         {
-            if (port < 1 || port == 80)
+            if (port < 1)
             {
                 throw new ArgumentOutOfRangeException("Expected a valid port number, > 0, not 80");
             }
@@ -38,14 +38,14 @@ namespace MigAz.Azure.ADAL
         }
 
         public async Task ListenToSingleRequestAndRespondAsync(
-            Func<Uri, string> responseProducer)
+            Func<Uri, string> responseProducer, CancellationToken cancellationToken)
         {
             _tcpListener.Start();
 
             TcpClient tcpClient = null;
             try
             {
-                await _tcpListener.AcceptTcpClientAsync().ConfigureAwait(false);
+                tcpClient = await _tcpListener.AcceptTcpClientAsync().ConfigureAwait(false);
 
                 await ExtractUriAndRespondAsync(tcpClient, responseProducer).ConfigureAwait(false);
 
@@ -121,25 +121,30 @@ namespace MigAz.Azure.ADAL
 
         private static async Task<string> GetTcpResponseAsync(TcpClient client)
         {
-            NetworkStream networkStream = client.GetStream();
-
-            byte[] readBuffer = new byte[1024];
-            StringBuilder stringBuilder = new StringBuilder();
-            int numberOfBytesRead = 0;
-
-            // Incoming message may be larger than the buffer size. 
-            do
+            if (client != null)
             {
-                numberOfBytesRead = await networkStream.ReadAsync(readBuffer, 0, readBuffer.Length)
-                    .ConfigureAwait(false);
+                NetworkStream networkStream = client.GetStream();
 
-                string s = Encoding.ASCII.GetString(readBuffer, 0, numberOfBytesRead);
-                stringBuilder.Append(s);
+                byte[] readBuffer = new byte[1024];
+                StringBuilder stringBuilder = new StringBuilder();
+                int numberOfBytesRead = 0;
+
+                // Incoming message may be larger than the buffer size. 
+                do
+                {
+                    numberOfBytesRead = await networkStream.ReadAsync(readBuffer, 0, readBuffer.Length)
+                        .ConfigureAwait(false);
+
+                    string s = Encoding.ASCII.GetString(readBuffer, 0, numberOfBytesRead);
+                    stringBuilder.Append(s);
+
+                }
+                while (networkStream.DataAvailable);
+
+                return stringBuilder.ToString();
 
             }
-            while (networkStream.DataAvailable);
-
-            return stringBuilder.ToString();
+            return string.Empty;
         }
 
         private async Task WriteResponseAsync(

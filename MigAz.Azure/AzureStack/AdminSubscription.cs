@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
-using Microsoft.IdentityModel.Clients.ActiveDirectory;
+using Microsoft.Identity.Client;
 using MigAz.Azure;
 using MigAz.Azure.Core.Interface;
 using Newtonsoft.Json.Linq;

@@ -45,10 +45,10 @@ namespace MigAz.Azure.Forms
                 lblSameSubscription.Text = azureLoginContextViewer.ExistingContext.AzureSubscription.ToString();
 
                 lblSameEnvironment2.Text = azureLoginContextViewer.ExistingContext.AzureEnvironment.ToString();
-                if (azureLoginContextViewer.ExistingContext.TokenProvider != null && azureLoginContextViewer.ExistingContext.TokenProvider.LastUserInfo != null)
+                if (azureLoginContextViewer.ExistingContext.TokenProvider != null && azureLoginContextViewer.ExistingContext.TokenProvider.LastAccount != null)
                 {
-                    lblSameUsername.Text = azureLoginContextViewer.ExistingContext.TokenProvider.LastUserInfo.DisplayableId;
-                    lblSameUsername2.Text = azureLoginContextViewer.ExistingContext.TokenProvider.LastUserInfo.DisplayableId;
+                    lblSameUsername.Text = azureLoginContextViewer.ExistingContext.TokenProvider.LastAccount.Username;
+                    lblSameUsername2.Text = azureLoginContextViewer.ExistingContext.TokenProvider.LastAccount.Username;
                 }
 
                 int subscriptionCount = 0;
@@ -147,7 +147,7 @@ namespace MigAz.Azure.Forms
             {
                 if (rbSameUserDifferentSubscription.Checked)
                 {
-                    _AzureLoginContextViewer.AzureContext.TokenProvider.LastUserInfo = _AzureLoginContextViewer.ExistingContext.TokenProvider.LastUserInfo;
+                    _AzureLoginContextViewer.AzureContext.TokenProvider.LastAccount = _AzureLoginContextViewer.ExistingContext.TokenProvider.LastAccount;
                     _AzureLoginContextViewer.AzureContext.AzureEnvironment = _AzureLoginContextViewer.ExistingContext.AzureEnvironment;
                     _AzureLoginContextViewer.AzureContextSelectedType = AzureContextSelectedType.SameUserDifferentSubscription;
                     _AzureLoginContextViewer.AzureContext.LoginPromptBehavior = PromptBehavior.Auto;

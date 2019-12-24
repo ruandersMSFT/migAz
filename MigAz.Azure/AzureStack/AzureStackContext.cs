@@ -1,6 +1,7 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
+using Microsoft.Identity.Client;
 using Microsoft.IdentityModel.Clients.ActiveDirectory;
 using MigAz.Azure;
 using MigAz.Azure.Core.Interface;
@@ -63,7 +64,7 @@ namespace MigAz.Azure.AzureStack
             //_AzureContext.LogProvider.WriteLog("GetAzureARMSubscriptions", "Start - azureTenant: " + azureTenant.ToString());
 
             String subscriptionsUrl = this.GetARMServiceManagementUrl() + "subscriptions?api-version=2015-01-01";
-            AuthenticationResult authenticationResult = await this.TokenProvider.GetToken(this.GetARMTokenResourceUrl(), azureTenant.TenantId, Microsoft.IdentityModel.Clients.ActiveDirectory.PromptBehavior.Auto);
+            Microsoft.Identity.Client.AuthenticationResult authenticationResult = await this.TokenProvider.GetToken(this.GetARMTokenResourceUrl(), azureTenant.TenantId, Microsoft.IdentityModel.Clients.ActiveDirectory.PromptBehavior.Auto);
 
             //_AzureContext.StatusProvider.UpdateStatus("BUSY: Getting Subscriptions...");
 

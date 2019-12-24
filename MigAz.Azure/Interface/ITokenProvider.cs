@@ -1,6 +1,7 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
+using Microsoft.Identity.Client;
 using Microsoft.IdentityModel.Clients.ActiveDirectory;
 using System;
 using System.Collections.Generic;
@@ -12,9 +13,9 @@ namespace MigAz.Azure.Interface
 {
     public interface ITokenProvider
     {
-        UserInfo LastUserInfo { get; set; }
-        Task<AuthenticationResult> GetToken(string resourceUrl, Guid tenantGuid, PromptBehavior promptBehavior = PromptBehavior.Auto);
-        Task<AuthenticationResult> Login(string resourceUrl, PromptBehavior promptBehavior = PromptBehavior.Auto);
+        IAccount LastAccount { get; set; }
+        Task<Microsoft.Identity.Client.AuthenticationResult> GetToken(string resourceUrl, Guid tenantGuid, PromptBehavior promptBehavior = PromptBehavior.Auto);
+        Task<Microsoft.Identity.Client.AuthenticationResult> Login(string resourceUrl, PromptBehavior promptBehavior = PromptBehavior.Auto);
     }
 }
 

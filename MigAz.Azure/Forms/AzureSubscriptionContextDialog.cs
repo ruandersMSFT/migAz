@@ -24,9 +24,9 @@ namespace MigAz.Azure.Forms
 
             lblAzureEnvironment.Text = _AzureContext.AzureEnvironment.ToString();
 
-            if (_AzureContext.TokenProvider.LastUserInfo != null)
+            if (_AzureContext.TokenProvider.LastAccount != null)
             {
-                lblAzureUsername.Text = _AzureContext.TokenProvider.LastUserInfo.DisplayableId;
+                lblAzureUsername.Text = _AzureContext.TokenProvider.LastAccount.Username;
             }
 
             cboTenant.Items.Clear();

@@ -2,7 +2,7 @@
 
 // Source:  https://github.com/bgavrilMS/msal-interactive-netcore/blob/master/active-directory-netcore-interactive-v2/OsBrowserWebUI/DefaultOsBrowserWebUi.cs
 
-using Microsoft.IdentityModel.Clients.ActiveDirectory.Extensibility;
+using Microsoft.Identity.Client.Extensibility;
 using System;
 using System.Diagnostics;
 using System.Globalization;
@@ -32,23 +32,6 @@ namespace MigAz.Azure.ADAL
     Error details: error {0} error_description: {1}
   </body>
 </html>";
-
-        public async Task<Uri> AcquireAuthorizationCodeAsync(
-            Uri authorizationUri,
-            Uri redirectUri)
-        {
-            if (!redirectUri.IsLoopback)
-            {
-                throw new ArgumentException("Only loopback redirect uri is supported with this WebUI. Configure http://localhost or http://localhost:port during app registration. ");
-            }
-
-            Uri result = await InterceptAuthorizationUriAsync(
-                authorizationUri,
-                redirectUri)
-                .ConfigureAwait(true);
-
-            return result;
-        }
 
         public static string FindFreeLocalhostRedirectUri()
         {
@@ -99,29 +82,6 @@ namespace MigAz.Azure.ADAL
             }
         }
 
-        private async Task<Uri> InterceptAuthorizationUriAsync(
-            Uri authorizationUri,
-            Uri redirectUri)
-        {
-            OpenBrowser(authorizationUri.ToString());
-            using (var listener = new SingleMessageTcpListener(redirectUri.Port))
-            {
-                Uri authCodeUri = null;
-                await listener.ListenToSingleRequestAndRespondAsync(
-                    (uri) =>
-                    {
-                        Trace.WriteLine("Intercepted an auth code url: " + uri.ToString());
-                        authCodeUri = uri;
-
-                        return GetMessageToShowInBroswerAfterAuth(uri);
-                    }
-                    )
-                .ConfigureAwait(false);
-
-                return authCodeUri;
-            }
-        }
-
         private static string GetMessageToShowInBroswerAfterAuth(Uri uri)
         {
             // Parse the uri to understand if an error was returned. This is done just to show the user a nice error message in the browser.
@@ -138,6 +98,33 @@ namespace MigAz.Azure.ADAL
             }
 
             return CloseWindowSuccessHtml;
+        }
+
+        public async Task<Uri> AcquireAuthorizationCodeAsync(Uri authorizationUri, Uri redirectUri, CancellationToken cancellationToken)
+        {
+            if (!redirectUri.IsLoopback)
+            {
+                throw new ArgumentException("Only loopback redirect uri is supported with this WebUI. Configure http://localhost or http://localhost:port during app registration. ");
+            }
+
+            OpenBrowser(authorizationUri.ToString());
+            using (var listener = new SingleMessageTcpListener(redirectUri.Port))
+            {
+                Uri authCodeUri = null;
+                await listener.ListenToSingleRequestAndRespondAsync(
+                    (uri) =>
+                    {
+                        Trace.WriteLine("Intercepted an auth code url: " + uri.ToString());
+                        authCodeUri = uri;
+
+                        return GetMessageToShowInBroswerAfterAuth(uri);
+                    },
+                    cancellationToken
+                    )
+                .ConfigureAwait(false);
+
+                return authCodeUri;
+            }
         }
     }
 }
