@@ -39,7 +39,7 @@ namespace MigAz.Azure.AzureStack
             this.AzureStackContext.LogProvider.WriteLog("GetAzureStackUserSubscriptions", "Start Stack Subscription: " + this.ToString());
 
             String subscriptionsUrl = this.AzureStackContext.GetARMServiceManagementUrl() + "/subscriptions/" + this.SubscriptionId.ToString() + "/providers/Microsoft.Subscriptions.Admin/subscriptions?$filter=&api-version=2015-11-01";
-            AuthenticationResult authenticationResult = await this.AzureStackContext.TokenProvider.GetToken(this.AzureStackContext.GetARMTokenResourceUrl(), this.AzureAdTenantId, Microsoft.IdentityModel.Clients.ActiveDirectory.PromptBehavior.Auto);
+            AuthenticationResult authenticationResult = await this.AzureStackContext.TokenProvider.GetToken(this.AzureStackContext.GetARMTokenResourceUrl(), "user_impersonation", Microsoft.IdentityModel.Clients.ActiveDirectory.PromptBehavior.Auto);
 
             this.AzureStackContext.StatusProvider.UpdateStatus("BUSY: Getting Subscriptions...");
 

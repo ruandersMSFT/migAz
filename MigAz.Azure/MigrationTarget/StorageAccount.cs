@@ -126,7 +126,7 @@ namespace MigAz.Azure.MigrationTarget
                 // https://docs.microsoft.com/en-us/rest/api/storagerp/storageaccounts/checknameavailability
                 string url = "/subscriptions/" + targetSubscription.SubscriptionId + ArmConst.ProviderStorage + checkNameAvailability + "?api-version=" + targetSubscription.GetProviderMaxApiVersion(ArmConst.MicrosoftStorage, checkNameAvailability);
 
-                AuthenticationResult authenticationResult = await azureContext.TokenProvider.GetToken(azureContext.AzureEnvironment.ResourceManagerEndpoint, azureContext.AzureSubscription.AzureAdTenantId);
+                AuthenticationResult authenticationResult = await azureContext.TokenProvider.GetToken(azureContext.AzureEnvironment.ResourceManagerEndpoint, "user_impersonation");
 
                 using (var client = new HttpClient())
                 {

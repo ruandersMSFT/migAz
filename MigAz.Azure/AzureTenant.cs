@@ -114,7 +114,7 @@ namespace MigAz.Azure
 
             String domainUrl = azureContext.AzureEnvironment.GraphEndpoint + "myorganization/domains?api-version=1.6";
 
-            Microsoft.Identity.Client.AuthenticationResult tenantAuthenticationResult = await azureContext.TokenProvider.GetToken(azureContext.AzureEnvironment.GraphEndpoint, this.TenantId, PromptBehavior.Never);
+            Microsoft.Identity.Client.AuthenticationResult tenantAuthenticationResult = await azureContext.TokenProvider.GetToken(azureContext.AzureEnvironment.GraphEndpoint, "Directory.Read.All", PromptBehavior.Never);
 
             azureContext.StatusProvider.UpdateStatus("BUSY: Getting Tenant Domain details from Graph...");
 
@@ -158,7 +158,7 @@ namespace MigAz.Azure
                 azureContext.StatusProvider.UpdateStatus("BUSY: Getting Auth Token to Query Subscriptions");
 
                 String subscriptionsUrl = azureContext.AzureEnvironment.ResourceManagerEndpoint + "subscriptions?api-version=2015-01-01";
-                Microsoft.Identity.Client.AuthenticationResult authenticationResult = await azureContext.TokenProvider.GetToken(azureContext.AzureEnvironment.ResourceManagerEndpoint, this.TenantId);
+                Microsoft.Identity.Client.AuthenticationResult authenticationResult = await azureContext.TokenProvider.GetToken(azureContext.AzureEnvironment.ResourceManagerEndpoint, "user_impersonation");
 
                 azureContext.StatusProvider.UpdateStatus("BUSY: Querying Subscriptions");
 

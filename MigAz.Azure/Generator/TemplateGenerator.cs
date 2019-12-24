@@ -1661,7 +1661,7 @@ namespace MigAz.Azure.Generator
             {
                 if (this.TargetAzureTokenProvider != null)
                 {
-                    AuthenticationResult authenticationResult = this.TargetAzureTokenProvider.GetToken(this.TargetSubscription.TokenResourceUrl, this.TargetSubscription.AzureTenant.TenantId).Result;
+                    AuthenticationResult authenticationResult = this.TargetAzureTokenProvider.GetToken(this.TargetSubscription.TokenResourceUrl, "user_impersonation").Result;
                     if (authenticationResult != null)
                     {
                         accountIdParameter = " -AccountId '" + authenticationResult.Account.Username + "'";

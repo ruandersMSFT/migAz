@@ -67,7 +67,7 @@ namespace MigAz.Azure
             // https://docs.microsoft.com/en-us/rest/api/resources/resources/getbyid
             url = this.ApiUrl + id + "?api-version=" + this.GetProviderMaxApiVersion(id);
             this.StatusProvider.UpdateStatus("BUSY: Getting ARM Resource '" + id + "'.");
-            AuthenticationResult armToken = await this.AzureTenant.AzureContext.TokenProvider.GetToken(this.TokenResourceUrl, this.AzureAdTenantId);
+            AuthenticationResult armToken = await this.AzureTenant.AzureContext.TokenProvider.GetToken(this.TokenResourceUrl, "user_impersonation");
 
             AzureRestRequest azureRestRequest = new AzureRestRequest(url, armToken, methodType, useCached);
             AzureRestResponse azureRestResponse = await this.AzureTenant.AzureContext.AzureRetriever.GetAzureRestResponse(azureRestRequest);
@@ -1627,7 +1627,7 @@ namespace MigAz.Azure
             if (azureContext.TokenProvider == null)
                 throw new ArgumentNullException("TokenProvider Context is null.  Unable to call Azure API without TokenProvider.");
 
-            AuthenticationResult armToken = await azureContext.TokenProvider.GetToken(this.TokenResourceUrl, this.AzureAdTenantId);
+            AuthenticationResult armToken = await azureContext.TokenProvider.GetToken(this.TokenResourceUrl, "user_impersonation");
 
             // https://docs.microsoft.com/en-us/rest/api/resources/providers/list
             string url = this.ApiUrl + "subscriptions/" + this.SubscriptionId + "/providers?&api-version=2017-05-10";
@@ -2277,7 +2277,7 @@ namespace MigAz.Azure
                     throw new ArgumentException("Unknown ResourceType: " + resourceType);
             }
 
-            AuthenticationResult asmToken = await this.AzureTenant.AzureContext.TokenProvider.GetToken(this.AzureTenant.AzureContext.AzureEnvironment.ServiceManagementUrl, this.AzureAdTenantId);
+            AuthenticationResult asmToken = await this.AzureTenant.AzureContext.TokenProvider.GetToken(this.AzureTenant.AzureContext.AzureEnvironment.ServiceManagementUrl, "user_impersonation");
 
             AzureRestRequest azureRestRequest = new AzureRestRequest(url, asmToken);
             azureRestRequest.Headers.Add("x-ms-version", "2015-04-01");
@@ -2410,7 +2410,7 @@ namespace MigAz.Azure
                     throw new ArgumentException("Unknown ResourceType: " + resourceType);
             }
 
-            AuthenticationResult armToken = await this.AzureTenant.AzureContext.TokenProvider.GetToken(this.TokenResourceUrl, this.AzureAdTenantId);
+            AuthenticationResult armToken = await this.AzureTenant.AzureContext.TokenProvider.GetToken(this.TokenResourceUrl, "user_impersonation");
 
             AzureRestRequest azureRestRequest = new AzureRestRequest(url, armToken, methodType, useCached);
             AzureRestResponse azureRestResponse = await this.AzureTenant.AzureContext.AzureRetriever.GetAzureRestResponse(azureRestRequest);
