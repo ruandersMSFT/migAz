@@ -77,17 +77,17 @@ namespace MigAz.Azure
             }
 
 
-            string[] scopes = new string[] { "user.read" };
+            string[] scopes = new string[] { resourceUrl + "user_impersonation" };
 
             PublicClientApplicationOptions options = new PublicClientApplicationOptions();
-            options.AzureCloudInstance = AzureCloudInstance.AzurePublic;
+            options.AzureCloudInstance = this.AzureEnvironment.GetAzureCloudInstance();
             options.ClientId = strClientId;
             options.RedirectUri = strReturnUrl;
 
             if (azureAdTenantGuid != Guid.Empty)
                 options.TenantId = azureAdTenantGuid.ToString();
             else
-                options.AadAuthorityAudience = AadAuthorityAudience.AzureAdMultipleOrgs;
+                options.AadAuthorityAudience = AadAuthorityAudience.AzureAdAndPersonalMicrosoftAccount;
 
             IPublicClientApplication app = PublicClientApplicationBuilder
                 .CreateWithApplicationOptions(options)
@@ -138,8 +138,8 @@ namespace MigAz.Azure
             string[] scopes = new string[] { "user.read" };
 
             PublicClientApplicationOptions options = new PublicClientApplicationOptions();
-            options.AzureCloudInstance = AzureCloudInstance.AzurePublic;
-            options.AadAuthorityAudience = AadAuthorityAudience.AzureAdMultipleOrgs;
+            options.AzureCloudInstance = this.AzureEnvironment.GetAzureCloudInstance();
+            options.AadAuthorityAudience = AadAuthorityAudience.AzureAdAndPersonalMicrosoftAccount;
             options.ClientId = strClientId;
             options.RedirectUri = strReturnUrl;
 

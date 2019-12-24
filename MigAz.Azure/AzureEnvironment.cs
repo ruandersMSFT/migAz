@@ -1,6 +1,7 @@
 ﻿// Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
+using Microsoft.Identity.Client;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -234,6 +235,27 @@ namespace MigAz.Azure
 
 
             return azureEnvironments;
+        }
+
+        public AzureCloudInstance GetAzureCloudInstance()
+        {
+            if (this.AzureEnvironmentType == AzureEnvironmentType.Azure)
+            {
+                switch (this.Name)
+                {
+                    case "AzureCloud":
+                        return AzureCloudInstance.AzurePublic;
+                    case "AzureChinaCloud":
+                        return AzureCloudInstance.AzureChina;
+                    case "AzureGermanCloud":
+                        return AzureCloudInstance.AzureGermany;
+                    case "AzureUSGovernment":
+                        return AzureCloudInstance.AzureUsGovernment;
+
+                }
+            }
+
+            return AzureCloudInstance.None;
         }
     }
 }
