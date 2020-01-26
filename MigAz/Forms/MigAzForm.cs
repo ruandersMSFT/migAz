@@ -511,7 +511,7 @@ namespace MigAz.Forms
         private void splitContainer1_Panel2_Resize(object sender, EventArgs e)
         {
             propertyPanel1.Width = splitContainer1.Panel2.Width - 10;
-            propertyPanel1.Height = splitContainer1.Panel2.Height - 100;
+            propertyPanel1.Height = splitContainer1.Panel2.Height - 150;
             panel1.Top = splitContainer1.Panel2.Height - panel1.Height - 15;
             panel1.Width = splitContainer1.Panel2.Width;
         }
