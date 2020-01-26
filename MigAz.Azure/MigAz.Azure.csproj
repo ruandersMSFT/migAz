@@ -9,6 +9,12 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <None Remove="Generator\BlobCopy_Delete_Snapshots.ps1" />
+    <None Remove="Generator\DeployDocTemplate.html" />
+    <None Remove="Generator\MigAz.ps1" />
+  </ItemGroup>
+
+  <ItemGroup>
     <PackageReference Include="Microsoft.Identity.Client" Version="4.5.1" />
     <PackageReference Include="Microsoft.IdentityModel.Clients.ActiveDirectory" Version="5.2.3" />
     <PackageReference Include="Newtonsoft.Json" Version="12.0.2" />
@@ -31,6 +37,12 @@
 
   <ItemGroup>
     <Folder Include="AzureStack\" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Include="Generator\BlobCopy_Delete_Snapshots.ps1" />
+    <EmbeddedResource Include="Generator\DeployDocTemplate.html" />
+    <EmbeddedResource Include="Generator\MigAz.ps1" />
   </ItemGroup>
 
 </Project>

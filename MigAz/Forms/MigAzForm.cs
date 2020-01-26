@@ -292,20 +292,27 @@ namespace MigAz.Forms
 
         private async void btnExport_Click_1Async(object sender, EventArgs e)
         {
-            // We are refreshing both the MemoryStreams and the Output Tabs via this call, prior to writing to files
-            if (await RefreshOutput())
+            try
             {
-                if (this.AzureGenerator != null)
+                // We are refreshing both the MemoryStreams and the Output Tabs via this call, prior to writing to files
+                if (await RefreshOutput())
                 {
-                    this.AzureGenerator.OutputDirectory = txtDestinationFolder.Text;
+                    if (this.AzureGenerator != null)
+                    {
+                        this.AzureGenerator.OutputDirectory = txtDestinationFolder.Text;
 
-                    this.AzureGenerator.Write();
+                        this.AzureGenerator.Write();
 
-                    StatusProvider.UpdateStatus("Ready");
+                        StatusProvider.UpdateStatus("Ready");
 
-                    var exportResults = new ExportResultsDialog(this.AzureGenerator);
-                    exportResults.ShowDialog(this);
+                        var exportResults = new ExportResultsDialog(this.AzureGenerator);
+                        exportResults.ShowDialog(this);
+                    }
                 }
+            }
+            catch (Exception exc)
+            {
+                MessageBox.Show(exc.Message);
             }
         }
 
