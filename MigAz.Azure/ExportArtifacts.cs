@@ -671,7 +671,7 @@ namespace MigAz.Azure
         private void ValidateDiskStandards(MigrationTarget.Disk targetDisk)
         {
             if (targetDisk.DiskSizeInGB == 0)
-                this.AddAlert(AlertType.Error, "Disk '" + targetDisk.ToString() + "' does not have a Disk Size defined.  Disk Size (not to exceed 4095 GB) is required.", targetDisk);
+                this.AddAlert(AlertType.Error, "Disk '" + targetDisk.ToString() + "' does not have a Disk Size defined.  Disk Size (not to exceed 65536 GB) is required.", targetDisk);
 
             if (targetDisk.Source != null)
             {
@@ -735,20 +735,28 @@ namespace MigAz.Azure
 
                 if (targetDisk.TargetStorage.StorageAccountType == StorageAccountType.Premium_LRS)
                 {
+                    // https://docs.microsoft.com/en-us/azure/virtual-machines/windows/disks-types#premium-ssd
+
                     if (targetDisk.DiskSizeInGB > 0 && targetDisk.DiskSizeInGB < 32)
-                        this.AddAlert(AlertType.Recommendation, "Consider using disk size 32GB (P4), as this disk will be billed at that capacity per Azure Premium Storage billing sizes.", targetDisk);
+                        this.AddAlert(AlertType.Recommendation, "Consider using disk size 32 GB (P4), as this disk will be billed at that capacity per Azure Premium Storage billing sizes.", targetDisk);
                     else if (targetDisk.DiskSizeInGB > 32 && targetDisk.DiskSizeInGB < 64)
-                        this.AddAlert(AlertType.Recommendation, "Consider using disk size 64GB (P6), as this disk will be billed at that capacity per Azure Premium Storage billing sizes.", targetDisk);
+                        this.AddAlert(AlertType.Recommendation, "Consider using disk size 64 GB (P6), as this disk will be billed at that capacity per Azure Premium Storage billing sizes.", targetDisk);
                     else if (targetDisk.DiskSizeInGB > 64 && targetDisk.DiskSizeInGB < 128)
-                        this.AddAlert(AlertType.Recommendation, "Consider using disk size 128GB (P10), as this disk will be billed at that capacity per Azure Premium Storage billing sizes.", targetDisk);
+                        this.AddAlert(AlertType.Recommendation, "Consider using disk size 128 GB (P10), as this disk will be billed at that capacity per Azure Premium Storage billing sizes.", targetDisk);
                     else if (targetDisk.DiskSizeInGB > 128 && targetDisk.DiskSizeInGB < 512)
-                        this.AddAlert(AlertType.Recommendation, "Consider using disk size 512GB (P20), as this disk will be billed at that capacity per Azure Premium Storage billing sizes.", targetDisk);
+                        this.AddAlert(AlertType.Recommendation, "Consider using disk size 512 GB (P20), as this disk will be billed at that capacity per Azure Premium Storage billing sizes.", targetDisk);
                     else if (targetDisk.DiskSizeInGB > 512 && targetDisk.DiskSizeInGB < 1023)
-                        this.AddAlert(AlertType.Recommendation, "Consider using disk size 1023GB (P30), as this disk will be billed at that capacity per Azure Premium Storage billing sizes.", targetDisk);
+                        this.AddAlert(AlertType.Recommendation, "Consider using disk size 1023 GB (P30), as this disk will be billed at that capacity per Azure Premium Storage billing sizes.", targetDisk);
                     else if (targetDisk.DiskSizeInGB > 1023 && targetDisk.DiskSizeInGB < 2047)
-                        this.AddAlert(AlertType.Recommendation, "Consider using disk size 2047GB (P40), as this disk will be billed at that capacity per Azure Premium Storage billing sizes.", targetDisk);
+                        this.AddAlert(AlertType.Recommendation, "Consider using disk size 2047 GB (P40), as this disk will be billed at that capacity per Azure Premium Storage billing sizes.", targetDisk);
                     else if (targetDisk.DiskSizeInGB > 2047 && targetDisk.DiskSizeInGB < 4095)
-                        this.AddAlert(AlertType.Recommendation, "Consider using disk size 4095GB (P50), as this disk will be billed at that capacity per Azure Premium Storage billing sizes.", targetDisk);
+                        this.AddAlert(AlertType.Recommendation, "Consider using disk size 4095 GB (P50), as this disk will be billed at that capacity per Azure Premium Storage billing sizes.", targetDisk);
+                    else if (targetDisk.DiskSizeInGB > 4095 && targetDisk.DiskSizeInGB < 8192)
+                        this.AddAlert(AlertType.Recommendation, "Consider using disk size 8192 GB (P60), as this disk will be billed at that capacity per Azure Premium Storage billing sizes.", targetDisk);
+                    else if (targetDisk.DiskSizeInGB > 8192 && targetDisk.DiskSizeInGB < 16384)
+                        this.AddAlert(AlertType.Recommendation, "Consider using disk size 16384 GB (P70), as this disk will be billed at that capacity per Azure Premium Storage billing sizes.", targetDisk);
+                    else if (targetDisk.DiskSizeInGB > 16384 && targetDisk.DiskSizeInGB < 32767)
+                        this.AddAlert(AlertType.Recommendation, "Consider using disk size 32767 GB (P80), as this disk will be billed at that capacity per Azure Premium Storage billing sizes.", targetDisk);
                 }
             }
         }

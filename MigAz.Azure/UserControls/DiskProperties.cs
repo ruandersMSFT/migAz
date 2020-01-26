@@ -429,9 +429,9 @@ namespace MigAz.Azure.UserControls
                 return;
             }
 
-            if (targetSizeInGb > 4095)
+            if (targetSizeInGb > 65536)
             {
-                MessageBox.Show("Target Size in GB cannot exceed 4,095.");
+                MessageBox.Show("Target Size in GB cannot exceed 65536.");
                 e.Cancel = true;
                 return;
             }
